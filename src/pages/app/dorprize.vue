@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import type { Doorprize } from './types';
+import type { Doorprize } from '/@src/interface/DoorprizeInterface';
 
 const doorprizes = ref<Doorprize[]>([]);
 const editingDoorprize = ref<Doorprize | null>(null);

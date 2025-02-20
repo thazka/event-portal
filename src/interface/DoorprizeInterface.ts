@@ -1,4 +1,4 @@
-interface Doorprize {
+export interface Doorprize {
     id: number;
     urutan: number;
     name: string;

@@ -74,7 +74,6 @@ const clearSeat = () => {
 <template>
     <div class="container">
         <div class="seating-layout">
-            <!-- Grid pembagian kursi -->
             <div class="seats-container">
                 <div v-for="(row, rowIndex) in 10" :key="rowIndex" class="columns is-mobile is-multiline">
                     <div v-for="(col, colIndex) in 10" :key="colIndex" class="column is-1">
@@ -86,7 +85,6 @@ const clearSeat = () => {
                 </div>
             </div>
 
-            <!-- Modal untuk mengisi detail kursi -->
             <div class="modal" :class="{ 'is-active': isModalOpen }">
                 <div class="modal-background" @click="closeModal"></div>
                 <div class="modal-card">
@@ -98,7 +96,6 @@ const clearSeat = () => {
                     </header>
                     <section class="modal-card-body">
                         <div v-if="selectedSeatData">
-                            <!-- Tampilkan detail jika kursi sudah terisi -->
                             <div class="card">
                                 <div class="card-content">
                                     <div class="content">
@@ -114,7 +111,6 @@ const clearSeat = () => {
                             </button>
                         </div>
                         <form v-else @submit.prevent="saveSeatData">
-                            <!-- Form untuk mengisi data kursi -->
                             <div class="field">
                                 <label class="label">Nama</label>
                                 <div class="control">

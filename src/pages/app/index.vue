@@ -13,7 +13,6 @@ const error = ref<string>('')
 const isDragging = ref<boolean>(false)
 
 const processExcelFile = (file: File) => {
-    // Check file type
     if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
         error.value = 'Please upload only Excel files (.xlsx or .xls)'
         return
@@ -29,7 +28,6 @@ const processExcelFile = (file: File) => {
             const firstSheetName = workbook.SheetNames[0]
             const worksheet = workbook.Sheets[firstSheetName]
 
-            // Convert Excel data to JSON
             const jsonData = XLSX.utils.sheet_to_json(worksheet)
 
             if (jsonData.length === 0) {
@@ -101,7 +99,6 @@ const clearData = () => {
 <template>
     <div class="container">
         <div class="section">
-            <!-- File Upload Section -->
             <div class="drop-zone" :class="{ 'is-dragging': isDragging }" @dragenter="handleDragEnter"
                 @dragleave="handleDragLeave" @dragover="handleDragOver" @drop="handleDrop">
                 <div class="field">
@@ -132,12 +129,10 @@ const clearData = () => {
                 </div>
             </div>
 
-            <!-- Error Message -->
             <div v-if="error" class="notification is-danger">
                 {{ error }}
             </div>
 
-            <!-- Data Table -->
             <div v-if="tableData.length" class="box">
                 <div class="is-flex is-justify-content-space-between mb-4">
                     <h2 class="title is-4">Excel Data</h2>
