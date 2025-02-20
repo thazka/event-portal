@@ -1,0 +1,39 @@
+# Logs
+
+logs
+_.log
+npm-debug.log_
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log\*
+.pnpm-debug.log*
+vite.config.ts.timestamp-*
+
+# Diagnostic reports (https://nodejs.org/api/report.html)
+report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
+
+# Runtime data
+pids
+_.pid
+_.seed
+\*.pid.lock
+node_modules/
+\*.tsbuildinfo
+.node_repl_history
+
+# build output
+dist
+dist-electron
+release
+
+# ignoring vuero releases files
+*.zip
+
+
+# zone identifier
+*:Zone.Identifier
+.DS_Store
+
+# dotenv
+.env
+types*
