@@ -27,6 +27,7 @@
     "@vueuse/core": "10.9.0",
     "@vueuse/router": "10.9.0",
     "bulma": "npm:@cssninja/bulma@0.9.4",
+    "canvas-confetti": "^1.9.3",
     "cross-env": "7.0.3",
     "defu": "6.1.4",
     "focus-trap": "7.5.4",
@@ -45,6 +46,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "20.12.8",
     "@vitejs/plugin-vue": "5.0.4",
     "rollup-plugin-purgecss": "6.0.0",

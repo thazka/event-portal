@@ -19,6 +19,12 @@ const links = ref<SideblockItem[]>([
     label: 'Seating',
     icon: 'fluent:seat-16-filled',
     to: '/app/seating',
+  },
+  {
+    type: 'link',
+    label: 'Withdraw',
+    icon: 'ph:hand-withdraw',
+    to: '/app/drawing',
   }
 ])
 </script>
