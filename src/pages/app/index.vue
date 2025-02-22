@@ -11,6 +11,12 @@ const headers = ref<string[]>([])
 const fileName = ref<string>('')
 const error = ref<string>('')
 const isDragging = ref<boolean>(false)
+const pageTitle = useVueroContext<string>('page-title')
+
+onMounted(() => {
+  pageTitle.value = 'Dashboard Analytics'
+})
+
 
 const processExcelFile = (file: File) => {
     if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
@@ -36,8 +42,8 @@ const processExcelFile = (file: File) => {
             }
 
             // Get headers from the first row
-            headers.value = Object.keys(jsonData[0])
-            tableData.value = jsonData
+            // headers.value = Object.keys(jsonData[0])
+            // tableData.value = jsonData
             error.value = ''
         } catch (err) {
             error.value = 'Error processing the Excel file'

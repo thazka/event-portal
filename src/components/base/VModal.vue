@@ -18,6 +18,7 @@ export interface VModalProps {
   noscroll?: boolean
   noclose?: boolean
   tabs?: boolean
+  middletitle?: boolean
   cancelLabel?: string
 }
 
@@ -84,7 +85,7 @@ onUnmounted(() => {
         />
         <div class="modal-content">
           <div class="modal-card">
-            <header class="modal-card-head">
+            <header class="modal-card-head" :class="middletitle && 'is-middle'">
               <h3>{{ title }}</h3>
               <button
                 ref="closeButton"
@@ -110,6 +111,7 @@ onUnmounted(() => {
               :class="[
                 actions === 'center' && 'is-centered',
                 actions === 'right' && 'is-end',
+                middletitle && 'is-middle'
               ]"
             >
               <slot
@@ -241,6 +243,27 @@ onUnmounted(() => {
         background: var(--white);
         border-bottom-color: color-mix(in oklab, var(--fade-grey), black 3%);
 
+        &.is-middle {
+          justify-content: center !important;
+          position: relative;
+          border: none;
+          
+          h3 {
+            font-weight: 600;
+            font-size: 21px;
+            line-height: 31.5px;
+            letter-spacing: 0%;
+            color: #1C6D89 !important;
+          }
+
+          .v-modal-close {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+          }
+        }
+
         &.no-border {
           border-bottom-color: transparent;
         }
@@ -317,6 +340,10 @@ onUnmounted(() => {
         background-color: var(--white);
         padding: 15px 20px;
         border-top: 1px solid color-mix(in oklab, var(--fade-grey), black 3%);
+
+        &.is-middle {
+          border-top: none !important;
+        }
 
         &.no-border {
           border-top-color: transparent;

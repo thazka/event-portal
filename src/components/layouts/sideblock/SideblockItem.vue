@@ -17,7 +17,7 @@ const props = defineProps<{
           :icon="props.link.icon"
         />
       </span>
-      {{ props.link.label }}
+      <span class="label-menu">{{ props.link.label }}</span>
       <span v-if="props.link.badge !== undefined" class="badge">{{ props.link.badge }}</span>
     </VLink>
   </li>
@@ -39,7 +39,7 @@ const props = defineProps<{
           :icon="props.link.icon"
         />
       </span>
-      {{ props.link.label }}
+      <span class="label-menu">{{ props.link.label }}</span>
       <span v-if="props.link.badge !== undefined" class="badge">{{ props.link.badge }}</span>
     </a>
   </li>
@@ -52,7 +52,7 @@ const props = defineProps<{
         :icon="props.link.icon"
       />
     </div>
-    {{ props.link.label }}
+    <span class="label-menu">{{ props.link.label }}</span>
   </VCollapseLinks>
   <li
     v-else-if="props.link.type === 'divider'"

@@ -7,6 +7,7 @@ const props = withDefaults(
   defineProps<{
     links?: SideblockItem[]
     theme?: SideblockTheme
+    meta?: boolean
     size?: 'default' | 'large' | 'wide' | 'full'
     closeOnChange?: boolean
     openOnMounted?: boolean
@@ -28,6 +29,7 @@ const isDesktopSideblockOpen = ref(props.openOnMounted)
 const context: SideblockLayoutContext = {
   links: computed(() => props.links),
   theme: computed(() => props.theme),
+  meta:  computed(() => props.meta),
   closeOnChange: computed(() => props.closeOnChange),
   openOnMounted: computed(() => props.openOnMounted),
 
@@ -99,6 +101,9 @@ watch(
       >
         <template #header>
           <slot name="logo" v-bind="contextRx" />
+        </template>
+        <template #meta>
+          <slot name="meta" v-bind="contextRx"></slot>
         </template>
         <template #links>
           <slot name="sideblock-links" v-bind="contextRx">

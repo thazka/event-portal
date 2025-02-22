@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useSideblockLayoutContext } from './sideblock.context'
 
-const { theme } = useSideblockLayoutContext()
+const { theme, meta } = useSideblockLayoutContext()
 
 const themeClasses = computed(() => {
   switch (theme.value) {
@@ -24,6 +24,9 @@ const themeClasses = computed(() => {
   >
     <div class="sidebar-block-header">
       <slot name="header" />
+    </div>
+    <div v-if="meta" class="sidebar-block-meta">
+      <slot name="meta"></slot>
     </div>
     <div class="sidebar-block-inner">
       <ul>
@@ -96,6 +99,12 @@ const themeClasses = computed(() => {
     }
   }
 
+  .sidebar-block-meta {
+    padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+  }
+
   .sidebar-block-inner {
     position: relative;
     height: calc(100vh - 160px);
@@ -103,7 +112,6 @@ const themeClasses = computed(() => {
     overflow-y: auto;
     overflow-x: hidden;
     background: var(--white);
-    margin-top: 40px;
 
     &::-webkit-scrollbar {
       width: 3px;
@@ -232,7 +240,7 @@ const themeClasses = computed(() => {
               }
 
               .iconify {
-                stroke-width: 1.5px;
+                stroke-width: 0;
               }
             }
 
@@ -373,7 +381,7 @@ const themeClasses = computed(() => {
         }
 
         .iconify {
-          stroke-width: 1.5px;
+          stroke-width: 0;
         }
       }
 

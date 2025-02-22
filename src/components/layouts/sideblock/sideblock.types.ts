@@ -64,6 +64,7 @@ export type SideblockTheme =
 export interface SideblockLayoutContext {
   links: ComputedRef<SideblockItem[]>
   theme: ComputedRef<SideblockTheme>
+  meta: ComputedRef<boolean>
 
   closeOnChange: ComputedRef<boolean>
   openOnMounted: ComputedRef<boolean>

@@ -45,3 +45,9 @@ const isExternalLink = computed(() => {
     </a>
   </RouterLink>
 </template>
+
+<style lang="scss" scoped>
+.router-link-exact-active {
+  background: #F7F7F7;
+}
+</style>
