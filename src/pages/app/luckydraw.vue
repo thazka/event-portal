@@ -12,23 +12,14 @@ interface Doorprize {
     name: string
     image: string
     description: string
-    /** Jumlah pemenang maksimal untuk doorprize ini */
     maxWinners: number
-    /** Daftar pemenang (siapa saja) */
     winners: Participant[]
 }
 
 const pageTitle = useVueroContext<string>('page-title')
 
-/**
- * Apakah peserta yang sudah pernah menang doorprize boleh menang lagi?
- * Terkait switch "Multiple Doorprizes per Winner"
- */
-const multipleDoorprizesPerWinner = ref(false)
-
 const searchParticipants = ref('')
-const isSpinning = ref(false)
-const selectedWinner = ref<Participant | null>(null)
+const multipleDoorprizesPerWinner = ref(false)
 const currentDoorprize = ref<Doorprize | null>(null)
 
 const participants = ref<Participant[]>([
@@ -97,12 +88,7 @@ const doorprizes = ref<Doorprize[]>([
     },
 ])
 
-/**
- * Filter participants:
- * - Bila multipleDoorprizesPerWinner = false, maka peserta yang sudah menang (selected) tidak ditampilkan lagi.
- * - Bila ada search, maka disaring sesuai keyword.
- */
- const filteredParticipants = computed(() => {
+const filteredParticipants = computed(() => {
     let list = participants.value
 
     if (!multipleDoorprizesPerWinner.value) {
@@ -117,56 +103,8 @@ const doorprizes = ref<Doorprize[]>([
     return list
 })
 
-const spinDuration = 5000 // Lama putar (ms)
-const spinSpeed = 50 // Kecepatan animasi putar (ms)
-
-const startSpin = async () => {
-    if (isSpinning.value || !currentDoorprize.value) return
-
-    // Cek apakah doorprize ini masih boleh punya pemenang (belum mencapai maxWinners)
-    if (currentDoorprize.value.winners.length >= currentDoorprize.value.maxWinners) {
-        alert('Pemenang untuk doorprize ini sudah penuh.')
-        return
-    }
-
-    isSpinning.value = true
-    selectedWinner.value = null
-
-    // Kumpulkan peserta yang masih eligible (sesuai filter)
-    const eligibleParticipants = filteredParticipants.value
-    if (eligibleParticipants.length === 0) {
-        // Tidak ada yang bisa dipilih
-        isSpinning.value = false
-        return
-    }
-
-    // Spin cepat
-    const startTime = Date.now()
-    while (Date.now() - startTime < spinDuration) {
-        const randomIndex = Math.floor(Math.random() * eligibleParticipants.length)
-        selectedWinner.value = eligibleParticipants[randomIndex]
-        await new Promise((resolve) => setTimeout(resolve, spinSpeed))
-    }
-
-    // Slow-down effect (opsional)
-    for (let i = 0; i < 10; i++) {
-        selectedWinner.value = eligibleParticipants[Math.floor(Math.random() * eligibleParticipants.length)]
-        await new Promise((resolve) => setTimeout(resolve, 200 + i * 100))
-    }
-
-    // Pilih final winner
-    const finalIndex = Math.floor(Math.random() * eligibleParticipants.length)
-    const winner = eligibleParticipants[finalIndex]
-
-    selectedWinner.value = winner
-
-    isSpinning.value = false
-}
-
 const selectDoorprize = (doorprize: Doorprize) => {
-    if (isSpinning.value) return
     currentDoorprize.value = doorprize
-    selectedWinner.value = null
 }
 
 const nextDoorprize = () => {
@@ -174,18 +112,20 @@ const nextDoorprize = () => {
     const currentIndex = doorprizes.value.findIndex(d => d.id === currentDoorprize.value?.id)
     if (currentIndex < doorprizes.value.length - 1) {
         currentDoorprize.value = doorprizes.value[currentIndex + 1]
-        selectedWinner.value = null
     }
 }
 
 const handleWinnerSelected = (winner: Participant) => {
-    console.log(winner)
-    const idx = participants.value.findIndex(p => p.id === winner.id)
-    if (idx !== -1) {
-        participants.value[idx].selected = true
+    // Mark participant as selected in main list
+    const participantIndex = participants.value.findIndex(p => p.id === winner.id)
+    if (participantIndex !== -1) {
+        participants.value[participantIndex].selected = true
     }
-    currentDoorprize.value?.winners.push(winner)
-    isSpinning.value = false
+
+    // Add winner to current doorprize
+    if (currentDoorprize.value) {
+        currentDoorprize.value.winners.push({...winner})
+    }
 }
 
 onMounted(() => {
@@ -243,20 +183,9 @@ useHead({
             </div>
 
             <!-- Area animasi/spinning -->
-            <div class="winner-display" :class="{ 'is-spinning': isSpinning }">
-                <RollingAnimation :participants="filteredParticipants" :is-spinning="isSpinning"
+            <div class="winner-display">
+                <RollingAnimation :participants="filteredParticipants"
                     :current-doorprize="currentDoorprize" @winner-selected="handleWinnerSelected" />
-            </div>
-
-            <div class="action-buttons mt-5">
-                <VButton color="primary" :loading="isSpinning" :disabled="isSpinning || !currentDoorprize"
-                    @click="startSpin">
-                    Spin Now
-                </VButton>
-
-                <VButton v-if="selectedWinner" color="info" @click="nextDoorprize">
-                    Next Doorprize
-                </VButton>
             </div>
         </VCard>
 
@@ -380,15 +309,11 @@ useHead({
 
         .winner-display {
             width: 100%;
+            text-align: center;
 
             &.is-spinning {
                 animation: pulse 0.5s infinite;
             }
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 1rem;
         }
     }
 

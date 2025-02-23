@@ -1,16 +1,27 @@
 <script setup lang="ts">
+interface Participant {
+    id: number
+    name: string
+    selected?: boolean
+}
+
 const SPIN_DURATION = 5000
 const INITIAL_SPEED = 30
 const FINAL_SPEED = 300
 
 const props = defineProps<{
-    participants: { id: number; name: string }[]
-    isSpinning: boolean
-    currentDoorprize: { id: number; name: string } | null
+    participants: Participant[]
+    currentDoorprize: {
+        id: number
+        name: string
+        maxWinners: number
+        image: string
+        winners: Participant[]
+    } | null
 }>()
 
 const emit = defineEmits<{
-    (e: 'winner-selected', winner: { id: number; name: string }): void
+    (e: 'winner-selected', winner: Participant): void
 }>()
 
 const containerRef = ref<HTMLElement | null>(null)
@@ -21,7 +32,9 @@ const itemHeight = ref(0)
 const currentPosition = ref(0)
 const startTime = ref(0)
 const displayName = ref('')
-let isAnimationComplete = false
+const isSpinning = ref(false)
+const showWinnerModal = ref(false)
+const winnerDetails = ref<Participant | null>(null)
 
 const updateInitialDisplay = () => {
     if (props.participants.length > 0) {
@@ -34,8 +47,10 @@ const updateInitialDisplay = () => {
 const setupDimensions = () => {
     if (!containerRef.value) return
     const item = containerRef.value.children[0] as HTMLElement
-    itemHeight.value = item.offsetHeight
-    listHeight.value = itemHeight.value * props.participants.length
+    if (item) {
+        itemHeight.value = item.offsetHeight
+        listHeight.value = itemHeight.value * props.participants.length
+    }
 }
 
 const getSpeedFactor = (elapsed: number) => {
@@ -52,7 +67,7 @@ const animate = (timestamp: number) => {
 
     const elapsed = timestamp - startTime.value
 
-    if (elapsed < SPIN_DURATION) {
+    if (elapsed < SPIN_DURATION && props.participants.length > 0) {
         const speedFactor = getSpeedFactor(elapsed)
         currentPosition.value = (currentPosition.value + speedFactor) % listHeight.value
 
@@ -62,51 +77,49 @@ const animate = (timestamp: number) => {
 
         displayName.value = props.participants[selectedIndex.value].name
         animationFrame.value = requestAnimationFrame(animate)
-    } else if (!isAnimationComplete) {
-        isAnimationComplete = true
-        const winner = props.participants[selectedIndex.value]
-        displayName.value = winner.name
-        emit('winner-selected', winner)
+    } else {
+        if (props.participants.length > 0) {
+            const winner = props.participants[selectedIndex.value]
+            displayName.value = winner.name
+            winnerDetails.value = winner
+            showWinnerModal.value = true
+            emit('winner-selected', winner)
+            isSpinning.value = false
+        }
     }
 }
 
-const startSpin = () => {
-    if (!containerRef.value) return
+const startSpin = async () => {
+    if (isSpinning.value || !props.currentDoorprize) return
 
-    isAnimationComplete = false
+    // Check if doorprize can have more winners
+    if (props.currentDoorprize.winners.length >= props.currentDoorprize.maxWinners) {
+        alert('Maximum winners reached for this doorprize.')
+        return
+    }
+
+    // Check if there are eligible participants
+    if (props.participants.length === 0) {
+        alert('No eligible participants available.')
+        return
+    }
+
+    isSpinning.value = true
     setupDimensions()
     startTime.value = 0
+    currentPosition.value = 0
     animationFrame.value = requestAnimationFrame(animate)
 }
 
-// Add ref to track if we're changing doorprize during spin
-const isDoorprizeChanging = ref(false)
-
+// Watch for changes in props
 watch(() => props.currentDoorprize, () => {
-    if (props.isSpinning) {
-        isDoorprizeChanging.value = true
-        // Cancel current animation if spinning
-        if (animationFrame.value) {
-            cancelAnimationFrame(animationFrame.value)
-            animationFrame.value = null
-        }
-    }
     updateInitialDisplay()
-    isAnimationComplete = false
 }, { immediate: true })
 
-watch(() => props.isSpinning, (newValue, oldValue) => {
-    if (newValue) {
-        // Only start spin if not changing doorprize
-        if (!isDoorprizeChanging.value) {
-            startSpin()
-        }
-        isDoorprizeChanging.value = false
-    } else if (animationFrame.value) {
-        cancelAnimationFrame(animationFrame.value)
-        animationFrame.value = null
-    }
-})
+watch(() => props.participants, () => {
+    updateInitialDisplay()
+    setupDimensions()
+}, { immediate: true })
 
 onMounted(() => {
     setupDimensions()
@@ -118,6 +131,10 @@ onUnmounted(() => {
         cancelAnimationFrame(animationFrame.value)
     }
 })
+const handleCloseModal = () => {
+    showWinnerModal.value = false
+    winnerDetails.value = null
+}
 </script>
 
 <template>
@@ -136,6 +153,14 @@ onUnmounted(() => {
             </div>
         </div>
     </div>
+    <div class="action-buttons mt-5">
+        <VButton color="primary" :loading="isSpinning" :disabled="isSpinning || !currentDoorprize" @click="startSpin">
+            Spin Now
+        </VButton>
+    </div>
+
+    <WinnerModal :is-open="showWinnerModal" :winner="winnerDetails" :doorprize="currentDoorprize"
+        @close="handleCloseModal" />
 </template>
 
 <style lang="scss" scoped>
@@ -148,6 +173,14 @@ onUnmounted(() => {
     background: white;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+
+}
+
+.action-buttons {
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    gap: 1rem;
 }
 
 .doorprize-name {
