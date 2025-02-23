@@ -30,6 +30,23 @@ const links = ref<SideblockItem[]>([
 ])
 
 const modalDataset = ref(false)
+const route = useRoute()
+const isOpenOnMount = ref(true)
+
+
+// Handle initial mount
+onMounted(() => {
+  handleRouteChange(route.path)
+})
+
+// Handle route updates
+onBeforeRouteUpdate((to) => {
+  handleRouteChange(to.path)
+})
+
+const shouldLarge = computed(() => {
+  return route.path === '/app/luckydraw' ? 'wide' : 'large'
+})
 
 const openModalDataset = () => {
   modalDataset.value = true
@@ -38,10 +55,14 @@ const openModalDataset = () => {
 const closeModalDataset = () => {
   modalDataset.value = false
 }
+
+const handleRouteChange = (path: any) => {
+  isOpenOnMount.value = path != '/app/luckydraw'
+}
 </script>
 
 <template>
-  <SideblockLayout :links open-on-mounted size="large" meta>
+  <SideblockLayout :links :open-on-mounted="isOpenOnMount" :size="shouldLarge" meta>
     <slot />
 
     <template #logo>

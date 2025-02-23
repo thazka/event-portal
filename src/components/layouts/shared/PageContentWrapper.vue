@@ -4,10 +4,12 @@ const props = withDefaults(defineProps<{
 }>(), {
   size: 'default',
 })
+
+const route = useRoute()
 </script>
 
 <template>
-  <div class="page-content-wrapper" :class="[`is-size-${props.size}`]">
+  <div class="page-content-wrapper" :class="[`is-size-${props.size}`, route.path == '/app/luckydraw' && 'is-luckydraw']">
     <slot />
   </div>
 </template>
@@ -32,6 +34,10 @@ const props = withDefaults(defineProps<{
 
   &.is-size-wide {
     padding-bottom: 32px;
+
+    &.is-luckydraw {
+      padding-bottom: 0;
+    }
   }
 
   .page-content {

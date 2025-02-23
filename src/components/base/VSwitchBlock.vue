@@ -244,7 +244,7 @@ const internal = computed({
     span {
       display: block;
       position: relative;
-      top: -2px;
+      // top: -2px;
       color: var(--light-text);
     }
   }

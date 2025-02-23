@@ -3,6 +3,8 @@ const props = defineProps<{
   topNav?: boolean
   full?: boolean
 }>()
+
+const route = useRoute()
 </script>
 
 <template>
@@ -11,6 +13,7 @@ const props = defineProps<{
     :class="[
       props.topNav && 'has-top-nav',
       props.full && 'view-wrapper-full',
+      route.path == '/app/luckydraw' && 'is-luckydraw'
     ]"
   >
     <slot />
@@ -74,6 +77,11 @@ const props = defineProps<{
     margin-inline-start: 0;
 
     &.is-pushed-block {
+      &.is-luckydraw {
+        margin-inline-start: 0;
+        width: 100%
+      }
+
       margin-inline-start: 280px;
       width: calc(100% - 280px);
 

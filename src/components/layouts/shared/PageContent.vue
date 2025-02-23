@@ -1,5 +1,9 @@
+<script setup lang="ts">
+const route = useRoute()
+</script>
+
 <template>
-  <div class="page-content">
+  <div class="page-content" :class="route.path == '/app/luckydraw' && 'is-luckydraw'">
     <slot />
   </div>
 </template>
@@ -10,6 +14,10 @@
 ========================================================================== */
 .page-content {
   padding: 0 40px;
+
+  &.is-luckydraw {
+    padding: 0;
+  }
 
   &.is-relative {
     position: relative;
@@ -36,7 +44,7 @@
   }
 }
 
-@media only screen and (device-width >= 768px) and (device-width <= 1024px) and (orientation: portrait) {
+@media only screen and (device-width >=768px) and (device-width <=1024px) and (orientation: portrait) {
   .page-content {
     padding: 0 10px;
 
@@ -46,7 +54,7 @@
   }
 }
 
-@media (width <= 767px) {
+@media (width <=767px) {
   .page-content {
     padding: 0 10px !important;
 

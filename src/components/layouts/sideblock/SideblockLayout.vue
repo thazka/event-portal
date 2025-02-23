@@ -96,7 +96,7 @@ watch(
     <!-- Desktop navigation -->
     <Transition name="slide-x">
       <Sideblock
-        v-if="isDesktopSideblockOpen"
+        v-if="isDesktopSideblockOpen && route.path != '/app/luckydraw'"
         :theme="props.theme"
       >
         <template #header>
