@@ -19,6 +19,10 @@ useHead({
 
 <template>
   <Layout>
-    <RouterView />
+    <RouterView v-slot="{ Component }">
+      <Transition name="translate-page-y" mode="out-in">
+        <component :is="Component" />
+      </Transition>
+    </RouterView>
   </Layout>
 </template>
