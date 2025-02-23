@@ -21,8 +21,14 @@ const participants = reactive([
     { name: 'Reza Aulia Rakhman', value: 'Reza Aulia Rakhman' }
 ])
 
+const statusAttedence = reactive([
+    { name: 'Not Present Yet', value: 'Not Present Yet' },
+    { name: 'Present', value: 'Present' },
+])
+
 const searchQuery = ref('')
 const selectedParticipant = ref('')
+const selectedStatus = ref('')
 const present = ref('Not Present Yet')
 const isFullscreen = ref(false)
 
@@ -35,6 +41,11 @@ const filteredParticipants = computed(() => {
 
 const selectParticipant = (data: string) => {
     selectedParticipant.value = data
+    selectedStatus.value = ''
+}
+
+const selectStatus = (data: string) => {
+    selectedStatus.value = data
 }
 
 const toggleFullscreen = () => {
@@ -106,24 +117,17 @@ onMounted(() => {
                         <VDropdown modern class="has-fullwidth">
                             <template #button="{ open, toggle, isOpen }">
                                 <VButton class="is-trigger has-fullwidth button-dropdown" @click="toggle">
-                                    <span>{{ selectedParticipant }}</span>
+                                    <span>{{ selectedStatus }}</span>
                                     <VIcon v-if="!isOpen" icon="fa6-solid:angle-down" />
                                     <VIcon v-else icon="fa6-solid:angle-up" />
                                 </VButton>
                             </template>
                             <template #content="{ close }">
-                                <div class="search-filter">
-                                    <VField>
-                                        <VControl icon="lucide:search">
-                                            <VInput v-model="searchQuery" type="text" placeholder="Search" />
-                                        </VControl>
-                                    </VField>
-                                </div>
-                                <a v-for="participant in filteredParticipants" :key="participant.value"
+                                <a v-for="status in statusAttedence" :key="status.value"
                                     class="dropdown-item"
-                                    :class="{ 'is-active': selectedParticipant === participant.value }"
-                                    @click="selectParticipant(participant.value), close()">
-                                    {{ participant.name }}
+                                    :class="{ 'is-active': selectedParticipant === status.value }"
+                                    @click="selectStatus(status.value), close()">
+                                    {{ status.name }}
                                 </a>
                             </template>
                         </VDropdown>

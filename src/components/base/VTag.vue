@@ -125,7 +125,7 @@ onUnmounted(() => {
   </div>
 </template>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .tag-dropdown {
   position: relative;
   display: inline-block;
