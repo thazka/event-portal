@@ -2,10 +2,12 @@
 export type VCardAdvancedRadius = 'regular' | 'smooth' | 'rounded'
 export interface VCardAdvancedProps {
   radius?: VCardAdvancedRadius
+  nofooter?: boolean
 }
 
 const props = withDefaults(defineProps<VCardAdvancedProps>(), {
   radius: 'regular',
+  nofooter: false
 })
 </script>
 
@@ -28,7 +30,7 @@ const props = withDefaults(defineProps<VCardAdvancedProps>(), {
     <div class="card-body">
       <slot name="content" />
     </div>
-    <div class="card-foot">
+    <div v-if="!props.nofooter" class="card-foot">
       <div class="left">
         <slot name="footer-left" />
       </div>

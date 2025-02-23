@@ -27,6 +27,9 @@
       "unplugin-vue-router/client",
     ],
     "paths": {
+      "vue3-apexcharts": [
+        "./node_modules/vue3-apexcharts/typings/vue3-apexcharts.d.ts"
+      ],
       "/@src/*": ["./src/*"],
     }
   },

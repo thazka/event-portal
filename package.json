@@ -24,8 +24,11 @@
     "@unhead/addons": "1.9.9",
     "@unhead/ssr": "1.9.9",
     "@unhead/vue": "1.9.9",
+    "@vueform/multiselect": "^2.6.11",
+    "@vueform/slider": "^2.1.10",
     "@vueuse/core": "10.9.0",
     "@vueuse/router": "10.9.0",
+    "apexcharts": "^4.5.0",
     "bulma": "npm:@cssninja/bulma@0.9.4",
     "canvas-confetti": "^1.9.3",
     "cross-env": "7.0.3",
@@ -44,6 +47,7 @@
     "vee-validate": "4.12.6",
     "vue": "3.4.26",
     "vue-router": "4.3.2",
+    "vue3-apexcharts": "^1.8.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

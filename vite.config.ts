@@ -46,6 +46,9 @@ export default defineConfig({
       'ufo',
       'vee-validate',
       'defu',
+      'vue3-apexcharts',
+      '@vueform/multiselect',
+      '@vueform/slider'
     ],
   },
   build: {

@@ -35,7 +35,7 @@ const handleLogin = async () => {
 }
 
 useHead({
-    title: 'Eventhook | Login',
+    title: 'Eventhook - Login',
 })
 </script>
 

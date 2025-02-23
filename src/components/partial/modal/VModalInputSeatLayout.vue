@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useNotyf } from '/@src/composables/notyf'
 
 const props = withDefaults(defineProps(), {
     open: false
 })
 
 const emit = defineEmits(['close', 'upload'])
+const notyf = useNotyf()
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const isDragging = ref(false)
@@ -13,7 +15,6 @@ const selectedFile = ref<File | null>(null)
 const isUploading = ref(false)
 const uploadProgress = ref(0)
 const showProgress = ref(false)
-const notyf = useNotyf()
 
 const closeModal = () => {
     emit('close')
@@ -32,20 +33,13 @@ const handleDragLeave = () => {
     isDragging.value = false
 }
 
-const triggerFileInput = () => {
-    if (fileInput.value) {
-        fileInput.value.click()
-    }
-}
-
 const handleDrop = async (event: DragEvent) => {
     isDragging.value = false
     const files = event.dataTransfer?.files
 
     if (files && files.length > 0) {
         const file = files[0]
-        // Validasi hanya .xls / .xlsx
-        if (file.name.endsWith('.xls') || file.name.endsWith('.xlsx')) {
+        if (file.name.endsWith('.png') || file.name.endsWith('.jpg') || file.name.endsWith('.jpeg')) {
             selectedFile.value = file
             showFileProgress(file)
             await startUpload()
@@ -55,15 +49,23 @@ const handleDrop = async (event: DragEvent) => {
     }
 }
 
+const triggerFileInput = () => {
+    if (fileInput.value) {
+        fileInput.value.click()
+    }
+}
+
 // Jika ingin menonaktifkan unggah lewat klik, bisa dihapus:
 const handleFileChange = async (event: Event) => {
     const input = event.target as HTMLInputElement
     if (input.files && input.files.length > 0) {
         const file = input.files[0]
-        if (file.name.endsWith('.xls') || file.name.endsWith('.xlsx')) {
+        if (file.name.endsWith('.png') || file.name.endsWith('.jpg') || file.name.endsWith('.jpeg')) {
             selectedFile.value = file
             showFileProgress(file)
             await startUpload()
+        } else {
+            notyf.error('Unsupported file format. Please upload a file in PNG, JPG, or JPEG format.')
         }
     }
 }
@@ -95,8 +97,6 @@ const startUpload = async () => {
 
     // Reset state
     isUploading.value = false
-    // selectedFile.value = null
-    // showProgress.value = false
 }
 
 const cancelUpload = () => {
@@ -116,13 +116,26 @@ const formatFileSize = (bytes: number) => {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
+
 </script>
 
 <template>
-    <VModal :open="props.open" title="Upload your participants dataset" class="modal-dataset" size="medium" actions="center" middletitle @close="closeModal">
+    <VModal :open="props.open" title="Upload event seat layout" class="modal-dataset" size="medium" actions="center" middletitle @close="closeModal">
         <template #content>
-            <div class="file-drop-zone" :class="{ 'is-dragover': isDragging }" @dragenter.prevent="handleDragEnter" @dragleave.prevent="handleDragLeave" @dragover.prevent @drop.prevent="handleDrop" @click="triggerFileInput">
-                <input ref="fileInput" type="file" accept=".xls,.xlsx" class="file-input" @change="handleFileChange" />
+            <div class="file-drop-zone" 
+                :class="{ 'is-dragover': isDragging }" 
+                @click="triggerFileInput"
+                @dragenter.prevent="handleDragEnter" 
+                @dragleave.prevent="handleDragLeave" 
+                @dragover.prevent 
+                @drop.prevent="handleDrop">
+                <input 
+                    ref="fileInput" 
+                    type="file" 
+                    accept=".jpg,.png,.jpeg" 
+                    class="file-input" 
+                    @change="handleFileChange" 
+                />
                 <div class="upload-content">
                     <span class="icon is-large">
                         <VIcon icon="lucide:upload-cloud" size="48" />
@@ -134,7 +147,7 @@ const formatFileSize = (bytes: number) => {
             </div>
 
             <p class="notes mt-2">
-                Accepted file type <strong>only .xls or .xlsx</strong>
+                Accepted file type <strong>only .png or .jpg</strong>
             </p>
 
             <div v-if="showProgress" class="file-progress-container mt-5">
