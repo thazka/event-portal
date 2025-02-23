@@ -119,7 +119,7 @@ const formatFileSize = (bytes: number) => {
 </script>
 
 <template>
-    <VModal :open="props.open" title="Upload your participants dataset" class="modal-dataset" size="medium" actions="center" middletitle @close="closeModal">
+    <VModal :open="props.open" title="Upload your participants dataset" class="modal-dataset" size="medium" actions="center" middletitle noborder @close="closeModal">
         <template #content>
             <div class="file-drop-zone" :class="{ 'is-dragover': isDragging }" @dragenter.prevent="handleDragEnter" @dragleave.prevent="handleDragLeave" @dragover.prevent @drop.prevent="handleDrop" @click="triggerFileInput">
                 <input ref="fileInput" type="file" accept=".xls,.xlsx" class="file-input" @change="handleFileChange" />

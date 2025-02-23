@@ -377,7 +377,8 @@ watch(activeValue, (value) => {
       position: relative;
       background: color-mix(in oklab, var(--fade-grey), white 2%);
       border: 1px solid var(--fade-grey);
-      max-width: 185px;
+      // max-width: 185px;
+      max-width: 300px;
       height: 35px;
       border-bottom: none;
       border-radius: 500px;

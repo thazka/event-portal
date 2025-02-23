@@ -120,7 +120,7 @@ const formatFileSize = (bytes: number) => {
 </script>
 
 <template>
-    <VModal :open="props.open" title="Upload event seat layout" class="modal-dataset" size="medium" actions="center" middletitle @close="closeModal">
+    <VModal :open="props.open" title="Upload event seat layout" class="modal-dataset" size="medium" actions="center" middletitle noborder @close="closeModal">
         <template #content>
             <div class="file-drop-zone" 
                 :class="{ 'is-dragover': isDragging }" 

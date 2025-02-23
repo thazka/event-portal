@@ -168,7 +168,7 @@ const handleLinkClick = (e: MouseEvent, page = 1) => {
       @click="(e: MouseEvent) => handleLinkClick(e, currentPage - 1)"
     >
       <VIcon icon="lucide:chevron-left" class="rtl-hidden" />
-      <VIcon icon="lucide:chevron-right" class="ltr-hidden" />
+      <!-- <VIcon icon="lucide:chevron-right" class="ltr-hidden" /> -->
     </RouterLink>
     <RouterLink
       :to="paginatedLink(currentPage + 1)"
@@ -177,7 +177,7 @@ const handleLinkClick = (e: MouseEvent, page = 1) => {
       @keydown.enter.prevent="(e: MouseEvent) => (e.target as HTMLAnchorElement).click()"
       @click="(e: MouseEvent) => handleLinkClick(e, currentPage + 1)"
     >
-      <VIcon icon="lucide:chevron-left" class="ltr-hidden" />
+      <!-- <VIcon icon="lucide:chevron-left" class="ltr-hidden" /> -->
       <VIcon icon="lucide:chevron-right" class="rtl-hidden" />
     </RouterLink>
     <slot name="after-navigation" />

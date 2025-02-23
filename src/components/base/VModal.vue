@@ -3,7 +3,7 @@ import type { Component } from 'vue'
 import { FocusTrap } from 'focus-trap-vue'
 
 export type VModalSize = 'small' | 'medium' | 'large' | 'big'
-export type VModalAction = 'center' | 'right'
+export type VModalAction = 'center' | 'right' | 'between'
 
 export interface VModalEmits {
   (e: 'close'): void
@@ -20,6 +20,7 @@ export interface VModalProps {
   tabs?: boolean
   middletitle?: boolean
   cancelLabel?: string
+  noborder: boolean
 }
 
 defineOptions({
@@ -111,7 +112,8 @@ onUnmounted(() => {
               :class="[
                 actions === 'center' && 'is-centered',
                 actions === 'right' && 'is-end',
-                middletitle && 'is-middle'
+                noborder && 'is-borderless',
+                actions === 'between' && 'is-between'
               ]"
             >
               <slot
@@ -247,6 +249,7 @@ onUnmounted(() => {
           justify-content: center !important;
           position: relative;
           border: none;
+          text-align: center;
           
           h3 {
             font-weight: 600;
@@ -341,7 +344,7 @@ onUnmounted(() => {
         padding: 15px 20px;
         border-top: 1px solid color-mix(in oklab, var(--fade-grey), black 3%);
 
-        &.is-middle {
+        &.is-borderless {
           border-top: none !important;
         }
 
@@ -355,6 +358,11 @@ onUnmounted(() => {
 
         &.is-centered {
           justify-content: center !important;
+        }
+        
+        &.is-between {
+          justify-content: space-between !important;
+          width: 100%;
         }
 
         &.is-end {

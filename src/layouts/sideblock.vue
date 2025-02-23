@@ -13,7 +13,7 @@ const links = ref<SideblockItem[]>([
     type: 'link',
     label: 'Whatsapp Broadcast',
     icon: 'ic:baseline-whatsapp',
-    to: '/app/whatsapp',
+    to: '/app/broadcast',
   },
   {
     type: 'link',
