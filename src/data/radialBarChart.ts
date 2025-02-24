@@ -1,9 +1,12 @@
-export function useDemo21RadialBar() {
+import { useAnalytics } from "/@src/stores/event/analytics"
+
+export function useRadialBar() {
+  const { analytics } = useAnalytics()
   const themeColors = useThemeColors()
   const series = shallowRef<any[]>([])
 
   watchEffect(() => {
-    series.value = [76]
+    series.value = [analytics.data?.attendance_rate || 0]
   })
 
   return reactive({

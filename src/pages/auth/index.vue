@@ -1,37 +1,97 @@
 <script setup lang="ts">
-import { useNotyf } from '/@src/composables/notyf'
-import sleep from '/@src/utils/sleep'
+import { ref } from 'vue'
 import eventLogo from '/@src/images/illustrations/login/logo-event.svg'
+import { useAuth } from '/@src/stores/useAuth'
 
-type StepId = 'login' | 'forgot-password'
-const step = ref<StepId>('login')
+interface LoginForm {
+    email: string
+    password: string
+    rememberMe: boolean
+}
+
 const isLoading = ref(false)
 const router = useRouter()
 const route = useRoute()
 const notyf = useNotyf()
 const token = useUserToken()
 const redirect = route.query.redirect as string
+const auth = useAuth()
+const userSession = useUserSession()
+
+const formData = ref<LoginForm>({
+    email: '',
+    password: '',
+    rememberMe: false
+})
+
+const encryptCredentials = (email: string, password: string): string => {
+    return btoa(JSON.stringify({ email, password }))
+}
+
+const decryptCredentials = (encrypted: string): { email: string; password: string } => {
+    try {
+        return JSON.parse(atob(encrypted))
+    } catch {
+        return { email: '', password: '' }
+    }
+}
+
+onMounted(() => {
+    if (userSession.isLoggedIn) {
+        router.push('/app')
+
+    }
+
+    const rememberedCreds = localStorage.getItem('rememberedCredentials')
+    if (rememberedCreds) {
+        const { email, password } = decryptCredentials(rememberedCreds)
+        formData.value.email = email
+        formData.value.password = password
+        formData.value.rememberMe = true
+    }
+})
 
 const handleLogin = async () => {
     if (!isLoading.value) {
         isLoading.value = true
 
-        await sleep(2000)
-        console.log('set token logged-in')
-        token.value = 'logged-in'
+        try {
+            if (formData.value.rememberMe) {
+                const encrypted = encryptCredentials(
+                    formData.value.email,
+                    formData.value.password
+                )
+                localStorage.setItem('rememberedCredentials', encrypted)
+            } else {
+                localStorage.removeItem('rememberedCredentials')
+            }
 
-        notyf.dismissAll()
-        notyf.primary('Welcome back, Mahook!')
+            const user = await auth.login({
+                email: formData.value.email,
+                password: formData.value.password
+            })
 
-        if (redirect) {
-            router.push(redirect)
+            userSession.setUser(user.data)
+            token.value = user?.data?.token
+
+            notyf.success(`Welcome back, ${userSession.user?.name}!`)
+
+            if (redirect) {
+                router.push(redirect)
+            } else {
+                router.push('/app')
+            }
+        } catch (error) {
+            notyf.error('Login failed. Please check your credentials.')
+        } finally {
+            isLoading.value = false
         }
-        else {
-            router.push('/app')
-        }
-
-        isLoading.value = false
     }
+}
+
+const handleRememberMe = (event: Event) => {
+    const target = event.target as HTMLInputElement
+    formData.value.rememberMe = target.checked
 }
 
 useHead({
@@ -40,72 +100,71 @@ useHead({
 </script>
 
 <template>
-    <div class="modern-login p-0">
-        <div class="underlay h-hidden-mobile h-hidden-tablet-p" />
+    <div>
+        <div class="modern-login p-0">
+            <div class="underlay h-hidden-mobile h-hidden-tablet-p" />
 
-        <div class="columns is-gapless is-vcentered">
-            <div class="column is-relative is-8 h-hidden-mobile h-hidden-tablet-p">
-                <div class="hero is-fullheight is-image"></div>
-            </div>
-            <div class="column is-4 is-relative">
-                <div class="top-tools">
-                    <img :src="eventLogo" alt="">
+            <div class="columns is-gapless is-vcentered">
+                <div class="column is-relative is-8 h-hidden-mobile h-hidden-tablet-p">
+                    <div class="hero is-fullheight is-image"></div>
                 </div>
-                <div class="is-form">
-                    <div class="is-form-inner">
-                        <div class="form-text" :class="[step !== 'login' && 'is-hidden']">
-                            <h2>Sign In</h2>
-                            <p>Welcome back to your account.</p>
-                        </div>
-                        <div class="form-text" :class="[step === 'login' && 'is-hidden']">
-                            <h2>Recover Account</h2>
-                            <p>Reset your account password.</p>
-                        </div>
-                        <form method="post" novalidate :class="[step !== 'login' && 'is-hidden']" class="login-wrapper"
-                            @submit.prevent="handleLogin">
-                            <VField>
-                                <VControl icon="lnil lnil-envelope autv-icon">
-                                    <VLabel class="auth-label">
-                                        Email Address
-                                    </VLabel>
-                                    <VInput type="email" autocomplete="current-password" />
-                                </VControl>
-                            </VField>
-                            <VField>
-                                <VControl icon="lnil lnil-lock-alt autv-icon">
-                                    <VLabel class="auth-label">
-                                        Password
-                                    </VLabel>
-                                    <VInput type="password" autocomplete="current-password" />
-                                </VControl>
-                            </VField>
-
-                            <VField>
-                                <VControl class="is-flex">
-                                    <VLabel raw class="remember-toggle">
-                                        <VInput raw type="checkbox" />
-
-                                        <span class="toggler">
-                                            <span class="active">
-                                                <VIcon icon="lucide:check" />
-                                            </span>
-                                            <span class="inactive">
-                                                <VIcon icon="lucide:circle" />
-                                            </span>
-                                        </span>
-                                    </VLabel>
-                                    <VLabel raw class="remember-me">
-                                        Remember Me
-                                    </VLabel>
-                                </VControl>
-                            </VField>
-
-                            <div class="button-wrap has-help">
-                                <VButton id="login-button" :loading="isLoading" class="has-fullwidth" color="primary" type="submit" size="big" rounded raised bold>
-                                    Sign In
-                                </VButton>
+                <div class="column is-4 is-relative">
+                    <div class="top-tools">
+                        <img :src="eventLogo" alt="">
+                    </div>
+                    <div class="is-form">
+                        <div class="is-form-inner">
+                            <div class="form-text">
+                                <h2>Sign In</h2>
+                                <p>Welcome back to your account.</p>
                             </div>
-                        </form>
+                            <form method="post" novalidate class="login-wrapper" @submit.prevent="handleLogin">
+                                <VField>
+                                    <VControl icon="lnil lnil-envelope autv-icon">
+                                        <VLabel class="auth-label">
+                                            Email Address
+                                        </VLabel>
+                                        <VInput v-model="formData.email" type="email" autocomplete="email" />
+                                    </VControl>
+                                </VField>
+                                <VField>
+                                    <VControl icon="lnil lnil-lock-alt autv-icon">
+                                        <VLabel class="auth-label">
+                                            Password
+                                        </VLabel>
+                                        <VInput v-model="formData.password" type="password"
+                                            autocomplete="current-password" />
+                                    </VControl>
+                                </VField>
+
+                                <VField>
+                                    <VControl class="is-flex">
+                                        <VLabel raw class="remember-toggle">
+                                            <VInput :checked="formData.rememberMe" @change="handleRememberMe" raw
+                                                type="checkbox" />
+                                            <span class="toggler">
+                                                <span class="active">
+                                                    <VIcon icon="lucide:check" />
+                                                </span>
+                                                <span class="inactive">
+                                                    <VIcon icon="lucide:circle" />
+                                                </span>
+                                            </span>
+                                        </VLabel>
+                                        <VLabel raw class="remember-me">
+                                            Remember Me
+                                        </VLabel>
+                                    </VControl>
+                                </VField>
+
+                                <div class="button-wrap has-help">
+                                    <VButton id="login-button" :loading="isLoading" class="has-fullwidth"
+                                        color="primary" type="submit" size="big" rounded raised bold>
+                                        Sign In
+                                    </VButton>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>

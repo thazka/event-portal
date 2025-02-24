@@ -1,26 +1,30 @@
 <script setup lang="ts">
-export interface UserData {
-    no: number
-    name: string
-    company: string
-    whatsapp: string
-    seat: string
-    attendance: string
-}
+import moment from 'moment'
+import type { Participants } from '/@src/interface/ParticipantsInterface'
 
 interface Props {
-    data: UserData[]
+    data: Participants[]
+    filter: {
+        search: string
+        page: number
+        offset: number
+    }
+    loading: boolean
+    sortColumn: keyof Participants | null
+    sortDirection: 'asc' | 'desc' | null
 }
+
+// Define emits for events we need to pass up to parent
+const emit = defineEmits<{
+    'update:filter': [filter: Props['filter']]
+    'update:sortColumn': [column: keyof Participants | null]
+    'update:sortDirection': [direction: 'asc' | 'desc' | null]
+    'select-seat': [seat: string]
+    'upload': []
+}>()
 
 // Properly define props with type checking
 const props = defineProps<Props>()
-
-const itemsPerPageOptions = [
-    { value: 10, label: '10' },
-    { value: 20, label: '20' },
-    { value: 50, label: '50' },
-    { value: 100, label: '100' }
-]
 
 const options = [
   'Left - 001',
@@ -30,43 +34,34 @@ const options = [
   'Left - 005'
 ]
 
-const filter = reactive({
-    search: '',
-    page: 1,
-    limit: 10
-})
-
 const selectedSeat = ref('Seat Unassigned')
 
-const sortColumn = ref<keyof UserData | null>(null)
-const sortDirection = ref<'asc' | 'desc' | null>(null)
-
-const handleSort = (column: keyof UserData) => {
-    if (sortColumn.value === column) {
-        if (sortDirection.value === 'asc') {
-            sortDirection.value = 'desc'
-        } else if (sortDirection.value === 'desc') {
-            sortDirection.value = null
-            sortColumn.value = null
+const handleSort = (column: keyof Participants) => {
+    if (props.sortColumn === column) {
+        if (props.sortDirection === 'asc') {
+            emit('update:sortDirection', 'desc')
+        } else if (props.sortDirection === 'desc') {
+            emit('update:sortColumn', null)
+            emit('update:sortDirection', null)
         } else {
-            sortDirection.value = 'asc'
-            sortColumn.value = column
+            emit('update:sortColumn', column)
+            emit('update:sortDirection', 'asc')
         }
     } else {
-        sortColumn.value = column
-        sortDirection.value = 'asc'
+        emit('update:sortColumn', column)
+        emit('update:sortDirection', 'asc')
     }
 }
 
-const getColorUp = (column: keyof UserData) => {
-    if (sortColumn.value === column && sortDirection.value === 'asc') {
+const getColorUp = (column: keyof Participants) => {
+    if (props.sortColumn === column && props.sortDirection === 'asc') {
         return '#1B1B1B'
     }
     return '#D9D9D9'
 }
 
-const getColorDown = (column: keyof UserData) => {
-    if (sortColumn.value === column && sortDirection.value === 'desc') {
+const getColorDown = (column: keyof Participants) => {
+    if (props.sortColumn === column && props.sortDirection === 'desc') {
         return '#1B1B1B'
     }
     return '#D9D9D9'
@@ -75,33 +70,33 @@ const getColorDown = (column: keyof UserData) => {
 const processedData = computed(() => {
     let result = [...props.data]
 
-    if (filter.search) {
-        const filterRe = new RegExp(filter.search, 'i')
+    if (props.filter.search) {
+        const filterRe = new RegExp(props.filter.search, 'i')
         result = result.filter((item) => {
             return (
                 item.name.match(filterRe) ||
                 item.company.match(filterRe) ||
-                item.whatsapp.match(filterRe) ||
+                item.phone.match(filterRe) ||
                 item.seat.match(filterRe) ||
                 item.attendance.match(filterRe)
             )
         })
     }
 
-    if (sortColumn.value && sortDirection.value) {
+    if (props.sortColumn && props.sortDirection) {
         result.sort((a, b) => {
-            const aValue = a[sortColumn.value!]
-            const bValue = b[sortColumn.value!]
+            const aValue = a[props.sortColumn!]
+            const bValue = b[props.sortColumn!]
 
             if (typeof aValue === 'number' && typeof bValue === 'number') {
-                return sortDirection.value === 'asc' ? aValue - bValue : bValue - aValue
+                return props.sortDirection === 'asc' ? aValue - bValue : bValue - aValue
             }
 
             // Handle string comparison
             const aString = String(aValue).toLowerCase()
             const bString = String(bValue).toLowerCase()
 
-            if (sortDirection.value === 'asc') {
+            if (props.sortDirection === 'asc') {
                 return aString.localeCompare(bString)
             }
             return bString.localeCompare(aString)
@@ -111,33 +106,17 @@ const processedData = computed(() => {
     return result
 })
 
-const handleLimit = (limit: number) => {
-    filter.page = 1
-    filter.limit = limit
-}
-
 const handleSelect = (value: string) => {
     selectedSeat.value = value
+    emit('select-seat', value)
+}
+
+const handleUpload = () => {
+    emit('upload')
 }
 </script>
 
 <template>
-    <div class="datatable-toolbar is-justify-content-space-between">
-        <h3>Participants List</h3>
-
-        <VFlex column-gap="10px">
-            <VField>
-                <VControl icon="lucide:search">
-                    <input v-model="filter.search" class="input custom-text-filter" placeholder="Search...">
-                </VControl>
-            </VField>
-            <VButtons>
-                <VButton color="primary" icon="lucide:download" outlined>
-                    Download
-                </VButton>
-            </VButtons>
-        </VFlex>
-    </div>
     <div class="datatable-wrapper">
         <div class="table-container">
             <table class="table datatable-table is-fullwidth">
@@ -190,16 +169,16 @@ const handleSelect = (value: string) => {
                         </th>
                         <th>
                             <span class="is-flex is-align-items-center is-justify-content-space-between"
-                                @click="handleSort('whatsapp')">
+                                @click="handleSort('phone')">
                                 <span class="is-align-items-center">Whatsapp</span>
                                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
                                     xmlns="http://www.w3.org/2000/svg">
                                     <path
                                         d="M5.41504 7.34924L9.24082 2.88583C9.63991 2.42022 10.3602 2.42022 10.7593 2.88583L14.5851 7.34924C15.1411 7.99791 14.6802 9.00003 13.8259 9.00003H6.1743C5.31994 9.00003 4.85903 7.99791 5.41504 7.34924Z"
-                                        :fill="getColorUp('whatsapp')" />
+                                        :fill="getColorUp('phone')" />
                                     <path
                                         d="M14.5851 12.6508L10.7593 17.1142C10.3602 17.5798 9.63991 17.5798 9.24082 17.1142L5.41504 12.6508C4.85903 12.0021 5.31994 11 6.1743 11L13.8259 11C14.6802 11 15.1411 12.0021 14.5851 12.6508Z"
-                                        :fill="getColorDown('whatsapp')" />
+                                        :fill="getColorDown('phone')" />
                                 </svg>
                             </span>
                         </th>
@@ -236,124 +215,58 @@ const handleSelect = (value: string) => {
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="user in processedData" :key="user.no">
-                        <td>{{ user.no }}</td>
-                        <td>{{ user.name }}</td>
-                        <td>{{ user.company }}</td>
-                        <td>{{ user.whatsapp }}</td>
-                        <td>
-                            <VTag :label="selectedSeat" :color="selectedSeat == 'Seat Unassigned' ? 'danger' : 'success'" curved hasDropdown :options="options"
-                                searchPlaceholder="Search" @select="handleSelect" />
-                        </td>
-                        <td class="has-text-left">
-                            Not Present Yet
-                        </td>
-                    </tr>
+                    <template v-if="props.loading">
+                        <tr>
+                            <td colspan="6" class="has-text-centered">
+                                <VLoader :active="true" class="mh-300" />
+                            </td>
+                        </tr>
+                    </template>
+                    <template v-else>
+                        <template v-if="!processedData.length">
+                            <tr>
+                                <td colspan="6" class="has-text-centered">
+                                    <VPlaceholderSection title="No Participants yet" subtitle="Upload dataset participants first and it will show up here.">
+                                        <template #image>
+                                            <VIcon icon="formkit:people" class="empty-state" />
+                                        </template>
+                                        <template #action>
+                                            <VButton color="primary" @click.prevent="handleUpload">Input Participants Dataset </VButton>
+                                        </template>
+                                    </VPlaceholderSection>
+                                </td>
+                            </tr>
+                        </template>
+                        <template v-else>
+                            <tr v-for="(user, index) in processedData" :key="user.no">
+                                <td>{{ index + 1 + ((props.filter?.page - 1) * props.filter?.offset) }}</td>
+                                <td>{{ user.name }}</td>
+                                <td>{{ user.company }}</td>
+                                <td>{{ user.phone }}</td>
+                                <td>
+                                    <VTag :label="selectedSeat" :color="selectedSeat == 'Seat Unassigned' ? 'danger' : 'success'"
+                                        curved hasDropdown :options="options" searchPlaceholder="Search" @select="handleSelect" />
+                                </td>
+                                <td class="has-text-left">
+                                    {{ user.attendance != null ? moment(user.attendance, 'YYYY-MM-DD HH:mm:ss').format('DD-MM-YYYY HH:mm') : '' }}
+                                </td>
+                            </tr>
+                        </template>
+                    </template>
                 </tbody>
             </table>
         </div>
-        <VPlaceholderPage v-if="processedData.length === 0" title="We couldn't find any matching results."
-            subtitle="Too bad. Looks like we couldn't find any matching results for the search terms you've entered. Please try different search terms or criteria."
-            larger />
     </div>
-
-    <VFlexPagination v-if="processedData.length > 5" v-model:current-page="filter.page" :item-per-page="10"
-        :total-items="873" :max-links-displayed="7" no-router class="mt-4">
-        <template #before-pagination>
-            <VDropdown left donw class="mr-2">
-                <template #button="{ toggle, isOpen }">
-                    <VButton @click="toggle">
-                        {{ filter.limit }}
-                        <span class="ml-2">
-                            <i v-if="isOpen" class="lnir lnir-chevron-up" />
-                            <i v-else class="lnir lnir-chevron-down" />
-                        </span>
-                    </VButton>
-                </template>
-                <template #content="{ close }">
-                    <a v-for="item in itemsPerPageOptions" :key="item.value" class="dropdown-item"
-                        @click="handleLimit(item.value), close()">
-                        {{ item.label }}
-                    </a>
-                </template>
-            </VDropdown>
-            <span class="mx-2 mr-5">/ page</span>
-        </template>
-    </VFlexPagination>
 </template>
 
 <style lang="scss" scoped>
-.is-navbar {
-    .datatable-toolbar {
-        padding-top: 30px;
-    }
+.mh-300 {
+    min-height: 300px;
 }
 
-.datatable-toolbar {
-    display: flex;
-    align-items: center;
-    margin-bottom: 20px;
-
-    h3 {
-        font-weight: 600;
-        font-size: 18.2px;
-        line-height: 27.3px;
-        color: #283252;
-    }
-
-    &.is-reversed {
-        flex-direction: row-reverse;
-    }
-
-    .field {
-        margin-bottom: 0;
-
-        .control {
-            .button {
-                color: var(--light-text);
-
-                &:hover,
-                &:focus {
-                    background: var(--primary);
-                    border-color: var(--primary);
-                    color: var(--primary--color-invert);
-                }
-            }
-        }
-    }
-
-    .buttons {
-        margin-left: auto;
-        margin-bottom: 0;
-
-        .v-button {
-            margin-bottom: 0;
-        }
-    }
-}
-
-.is-dark {
-    .datatable-toolbar {
-        .field {
-            .control {
-                .button {
-                    background: var(--dark-sidebar) !important;
-                    color: var(--light-text);
-
-                    &:hover,
-                    &:focus {
-                        background: var(--primary) !important;
-                        border-color: var(--primary) !important;
-                        color: var(--smoke-white) !important;
-                    }
-                }
-            }
-        }
-    }
-
-    h3 {
-        color: var(--light-text);
-    }
+.empty-state {
+    font-size: 94px;
+    color: #4B93AD;
 }
 
 .datatable-wrapper {

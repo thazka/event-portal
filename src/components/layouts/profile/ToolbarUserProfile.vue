@@ -21,57 +21,11 @@ const logout = () => {
             <div class="dropdown-head">
                 <VAvatar size="large" picture="/images/avatars/svg/vuero-1.svg" />
 
-                <div class="meta">
-                    <span>Erik Kovalsky</span>
-                    <span>Product Manager</span>
+                <div class="meta has-text-left">
+                    <span>{{ userSession.user?.name }}</span>
+                    <span class="email">{{ userSession.user?.email }}</span>
                 </div>
             </div>
-
-            <a href="#" role="menuitem" class="dropdown-item is-media">
-                <div class="icon">
-                    <i aria-hidden="true" class="lnil lnil-user-alt" />
-                </div>
-                <div class="meta">
-                    <span>Profile</span>
-                    <span>View your profile</span>
-                </div>
-            </a>
-
-            <hr class="dropdown-divider">
-
-            <a href="#" role="menuitem" class="dropdown-item is-media">
-                <div class="icon">
-                    <i aria-hidden="true" class="lnil lnil-briefcase" />
-                </div>
-                <div class="meta">
-                    <span>Projects</span>
-                    <span>All my projects</span>
-                </div>
-            </a>
-
-            <a href="#" role="menuitem" class="dropdown-item is-media">
-                <div class="icon">
-                    <i aria-hidden="true" class="lnil lnil-users-alt" />
-                </div>
-                <div class="meta">
-                    <span>Team</span>
-                    <span>Manage your team</span>
-                </div>
-            </a>
-
-            <hr class="dropdown-divider">
-
-            <a href="#" role="menuitem" class="dropdown-item is-media">
-                <div class="icon">
-                    <i aria-hidden="true" class="lnil lnil-cog" />
-                </div>
-                <div class="meta">
-                    <span>Settings</span>
-                    <span>Account settings</span>
-                </div>
-            </a>
-
-            <hr class="dropdown-divider">
 
             <div class="dropdown-item is-button">
                 <VButton class="logout-button" icon="lucide:log-out" color="primary" role="menuitem" raised fullwidth
@@ -120,9 +74,8 @@ const logout = () => {
                     }
 
                     &:nth-child(2) {
-                        text-transform: uppercase;
                         color: var(--light-text);
-                        font-size: 0.7rem;
+                        font-size: 12px;
                     }
                 }
             }

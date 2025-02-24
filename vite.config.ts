@@ -47,6 +47,8 @@ export default defineConfig({
       'vee-validate',
       'defu',
       'vue3-apexcharts',
+      'notyf',
+      'v-calendar',
       '@vueform/multiselect',
       '@vueform/slider'
     ],

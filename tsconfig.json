@@ -30,6 +30,9 @@
       "vue3-apexcharts": [
         "./node_modules/vue3-apexcharts/typings/vue3-apexcharts.d.ts"
       ],
+      "v-calendar": [
+        "./node_modules/v-calendar/dist/types/src/index.d.ts"
+      ],
       "/@src/*": ["./src/*"],
     }
   },

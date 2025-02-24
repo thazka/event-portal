@@ -1,29 +1,83 @@
 <script setup lang="ts">
-import { userList } from '/@src/data/datatable'
-import { useDemo21RadialBar } from '/@src/data/demo21-radialbar'
+import { fetchEventAnalytics, fetchLayoutEvent } from '/@src/composables/event/analytics'
+import { fetchEventParticipants } from '/@src/composables/event/participants'
+import { useRadialBar } from '/@src/data/radialBarChart'
+import { itemsPerPageOptions } from '/@src/data/options'
+import type { Participants } from '/@src/interface/ParticipantsInterface'
+import { useAnalytics } from '/@src/stores/event/analytics'
+import { useParticipants } from '/@src/stores/event/participants'
+
+const filter = reactive({
+    search: '',
+    page: 1,
+    offset: 10
+})
+
+const radialBar = useRadialBar()
+const pageTitle = useVueroContext<string>('page-title')
+
+const sortColumn = ref<keyof Participants | null>(null)
+const sortDirection = ref<'asc' | 'desc' | null>(null)
+
+const modalSeat = ref(false)
+const modalDataset = ref(false)
+
+const { participants } = useParticipants()
+const { analytics, seatLayout } = useAnalytics()
+const openModalSeat = () => {
+    modalSeat.value = true
+}
+
+const handleLimit = (limit: number) => {
+    filter.page = 1
+    filter.offset = limit
+
+    fetchEventParticipants(filter)
+}
+
+const changePage = (page: number) => {
+    filter.page = page
+
+    fetchEventParticipants(filter)
+}
+
+const handleSearch = () => {
+    filter.page = 1
+
+    fetchEventParticipants(filter)
+}
+
+// Handle seat selection
+const handleSelectSeat = (seat: string) => {
+    console.log('Seat selected:', seat)
+    // Implement any additional functionality needed when a seat is selected
+}
+
+const handleSeat = () => {
+    fetchLayoutEvent().then(() => {
+        modalSeat.value = false
+    })
+}
 
 onMounted(() => {
     pageTitle.value = 'Dashboard Analytics'
+
+    Promise.all([
+        fetchEventParticipants(filter),
+        fetchEventAnalytics()
+    ])
 })
 
 useHead({
     title: 'Eventhook - Dashboard Analytics',
 })
-
-const demo21 = useDemo21RadialBar()
-const pageTitle = useVueroContext<string>('page-title')
-const modalSeat = ref(false)
-
-const openModalSeat = () => {
-    modalSeat.value = true
-}
 </script>
 
 <template>
     <div>
         <div class="columns has-fullheight main-container">
             <div class="column is-half column-wrapper">
-                <VCardAdvanced nofooter>
+                <VCardAdvanced nofooter class="seat-layout-card">
                     <template #header-left>
                         <h3 class="title-widget">Layout Event</h3>
                     </template>
@@ -36,7 +90,9 @@ const openModalSeat = () => {
                         </div>
                     </template>
                     <template #content>
-                        <img class="has-fullwidth" src="/images/event/seatmap.jpg" alt="">
+                        <VLoader v-if="seatLayout.isLoading" :active="true" class="has-fullheight has-fullwidth" />
+                        <img v-else class="has-fullwidth" :src="seatLayout.data.file || '/images/event/seatmap.jpg'"
+                            alt="">
                     </template>
                 </VCardAdvanced>
             </div>
@@ -48,7 +104,7 @@ const openModalSeat = () => {
                             <h3 class="title-section mb-2">
                                 Total Participants
                             </h3>
-                            <span class="total-section">0</span>
+                            <span class="total-section">{{ analytics.data?.total_participants || 0 }}</span>
                         </VCard>
                     </div>
                     <div class="column is-half">
@@ -56,7 +112,7 @@ const openModalSeat = () => {
                             <h3 class="title-section mb-2">
                                 Seats Assigned
                             </h3>
-                            <span class="total-section">0</span>
+                            <span class="total-section">{{ analytics.data?.total_seat_assigned || 0 }}</span>
                         </VCard>
                     </div>
                     <div class="column is-half">
@@ -64,7 +120,7 @@ const openModalSeat = () => {
                             <h3 class="title-section mb-2">
                                 Present
                             </h3>
-                            <span class="total-section">0</span>
+                            <span class="total-section">{{ analytics.data?.total_presents || 0 }}</span>
                         </VCard>
                     </div>
                     <div class="column is-half">
@@ -72,7 +128,7 @@ const openModalSeat = () => {
                             <h3 class="title-section mb-2">
                                 Not Yet Present
                             </h3>
-                            <span class="total-section">0</span>
+                            <span class="total-section">{{ analytics.data?.total_not_yet_presents || 0 }}</span>
                         </VCard>
                     </div>
                     <div class="column">
@@ -81,7 +137,7 @@ const openModalSeat = () => {
                                 Attendance Rate
                             </h3>
                             <div>
-                                <ApexChart v-bind="demo21" />
+                                <ApexChart v-bind="radialBar" />
                             </div>
                         </VCard>
                     </div>
@@ -89,12 +145,156 @@ const openModalSeat = () => {
             </div>
         </div>
 
-        <VTableList :data="userList" />
-        <VModalInputSeatLayout :open="modalSeat" @close="modalSeat = false"/>
+        <div class="list-wrapper">
+            <div class="datatable-toolbar is-justify-content-space-between">
+                <h3>Participants List</h3>
+
+                <VFlex column-gap="10px">
+                    <VField>
+                        <VControl icon="lucide:search">
+                            <input v-model="filter.search" :disabled="participants.isLoading"
+                                class="input custom-text-filter" placeholder="Search..." @keyup.enter="handleSearch" />
+                        </VControl>
+                    </VField>
+                    <VButtons>
+                        <VButton color="primary" icon="lucide:download" outlined>
+                            Download
+                        </VButton>
+                    </VButtons>
+                </VFlex>
+            </div>
+
+            <VTableList :data="participants.data" :loading="participants.isLoading" :filter="filter"
+                :sort-column="sortColumn" :sort-direction="sortDirection" @update:filter="filter = $event"
+                @update:sort-column="sortColumn = $event" @update:sort-direction="sortDirection = $event"
+                @select-seat="handleSelectSeat" @upload="modalDataset = true" />
+
+            <VFlexPagination v-if="participants.data?.length" v-model:current-page="filter.page"
+                :item-per-page="filter.offset" :total-items="participants.pagination?.total" :max-links-displayed="7"
+                no-router @update:currentPage="changePage">
+                <template #before-pagination>
+                    <VDropdown left donw class="mr-2">
+                        <template #button="{ toggle, isOpen }">
+                            <VButton @click="toggle">
+                                {{ filter.offset }}
+                                <span class="ml-2">
+                                    <i v-if="isOpen" class="lnir lnir-chevron-up" />
+                                    <i v-else class="lnir lnir-chevron-down" />
+                                </span>
+                            </VButton>
+                        </template>
+                        <template #content="{ close }">
+                            <a v-for="item in itemsPerPageOptions" :key="item.value" class="dropdown-item"
+                                @click="handleLimit(item.value), close()">
+                                {{ item.label }}
+                            </a>
+                        </template>
+                    </VDropdown>
+                    <span class="mx-2 mr-5">/ page</span>
+                </template>
+            </VFlexPagination>
+        </div>
+
+        <VModalInputSeatLayout :open="modalSeat" @close="modalSeat = false" @upload="handleSeat" />
+        <VModalInputDataset :open="modalDataset" @close="modalDataset = false" />
+
     </div>
 </template>
 
 <style lang="scss" scoped>
+.seat-layout-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    /* Pastikan card memiliki tinggi 100% dari container-nya */
+
+    :deep(.card) {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    :deep(.card-body) {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex: 1;
+        overflow: hidden;
+    }
+}
+
+.datatable-toolbar {
+    padding-top: 10px;
+}
+
+.datatable-toolbar {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+
+    h3 {
+        font-weight: 600;
+        font-size: 18.2px;
+        line-height: 27.3px;
+        color: #283252;
+    }
+
+    &.is-reversed {
+        flex-direction: row-reverse;
+    }
+
+    .field {
+        margin-bottom: 0;
+
+        .control {
+            .button {
+                color: var(--light-text);
+
+                &:hover,
+                &:focus {
+                    background: var(--primary);
+                    border-color: var(--primary);
+                    color: var(--primary--color-invert);
+                }
+            }
+        }
+    }
+
+    .buttons {
+        margin-left: auto;
+        margin-bottom: 0;
+
+        .v-button {
+            margin-bottom: 0;
+        }
+    }
+}
+
+.is-dark {
+    .datatable-toolbar {
+        .field {
+            .control {
+                .button {
+                    background: var(--dark-sidebar) !important;
+                    color: var(--light-text);
+
+                    &:hover,
+                    &:focus {
+                        background: var(--primary) !important;
+                        border-color: var(--primary) !important;
+                        color: var(--smoke-white) !important;
+                    }
+                }
+            }
+        }
+    }
+
+    h3 {
+        color: var(--light-text);
+    }
+}
+
 .title-widget {
     font-weight: 600;
     font-size: 18px;
