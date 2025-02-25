@@ -2,6 +2,9 @@
 import moment from 'moment'
 import type { Participants } from '/@src/interface/ParticipantsInterface'
 
+const activeTag = ref(null);
+provide('activeTag', activeTag);
+
 interface Props {
     data: Participants[]
     filter: {
@@ -12,6 +15,7 @@ interface Props {
     loading: boolean
     sortColumn: keyof Participants | null
     sortDirection: 'asc' | 'desc' | null
+    seatList: string[]
 }
 
 // Define emits for events we need to pass up to parent
@@ -19,22 +23,24 @@ const emit = defineEmits<{
     'update:filter': [filter: Props['filter']]
     'update:sortColumn': [column: keyof Participants | null]
     'update:sortDirection': [direction: 'asc' | 'desc' | null]
-    'select-seat': [seat: string]
+    'select-seat': [userId: number, seat: number]
     'upload': []
 }>()
 
-// Properly define props with type checking
 const props = defineProps<Props>()
+const notyf = useNotyf()
 
-const options = [
-  'Left - 001',
-  'Left - 002',
-  'Left - 003',
-  'Left - 004',
-  'Left - 005'
-]
-
-const selectedSeat = ref('Seat Unassigned')
+const assignedSeats = computed(() => {
+    const seats: Record<string, number> = {}
+    
+    props.data.forEach((participant: any) => {
+        if (participant.seat && participant.seat.name) {
+         seats[participant.seat.id] = participant.id
+        }
+    })
+    
+    return seats
+})
 
 const handleSort = (column: keyof Participants) => {
     if (props.sortColumn === column) {
@@ -67,7 +73,7 @@ const getColorDown = (column: keyof Participants) => {
     return '#D9D9D9'
 }
 
-const processedData = computed(() => {
+const processedData = computed<any>(() => {
     let result = [...props.data]
 
     if (props.filter.search) {
@@ -106,9 +112,13 @@ const processedData = computed(() => {
     return result
 })
 
-const handleSelect = (value: string) => {
-    selectedSeat.value = value
-    emit('select-seat', value)
+const handleSelectSeat = (userId: number, seat: any) => {
+    if (assignedSeats.value[seat] && assignedSeats.value[seat] != userId) {
+        notyf.error(`This seat is already assigned to another participant`)
+        return
+    }
+    
+    emit('select-seat', userId, seat)
 }
 
 const handleUpload = () => {
@@ -124,16 +134,16 @@ const handleUpload = () => {
                     <tr>
                         <th>
                             <span class="is-flex is-align-items-center is-justify-content-space-between"
-                                @click="handleSort('no')">
+                                @click="handleSort('id')">
                                 <span class="is-align-items-center">No</span>
                                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
                                     xmlns="http://www.w3.org/2000/svg">
                                     <path
                                         d="M5.41504 7.34924L9.24082 2.88583C9.63991 2.42022 10.3602 2.42022 10.7593 2.88583L14.5851 7.34924C15.1411 7.99791 14.6802 9.00003 13.8259 9.00003H6.1743C5.31994 9.00003 4.85903 7.99791 5.41504 7.34924Z"
-                                        :fill="getColorUp('no')" />
+                                        :fill="getColorUp('id')" />
                                     <path
                                         d="M14.5851 12.6508L10.7593 17.1142C10.3602 17.5798 9.63991 17.5798 9.24082 17.1142L5.41504 12.6508C4.85903 12.0021 5.31994 11 6.1743 11L13.8259 11C14.6802 11 15.1411 12.0021 14.5851 12.6508Z"
-                                        :fill="getColorDown('no')" />
+                                        :fill="getColorDown('id')" />
                                 </svg>
                             </span>
                         </th>
@@ -238,14 +248,23 @@ const handleUpload = () => {
                             </tr>
                         </template>
                         <template v-else>
-                            <tr v-for="(user, index) in processedData" :key="user.no">
+                            <tr v-for="(user, index) in processedData" :key="user.id">
                                 <td>{{ index + 1 + ((props.filter?.page - 1) * props.filter?.offset) }}</td>
                                 <td>{{ user.name }}</td>
                                 <td>{{ user.company }}</td>
                                 <td>{{ user.phone }}</td>
                                 <td>
-                                    <VTag :label="selectedSeat" :color="selectedSeat == 'Seat Unassigned' ? 'danger' : 'success'"
-                                        curved hasDropdown :options="options" searchPlaceholder="Search" @select="handleSelect" />
+                                    <VTag 
+                                        :id="`option-${index}`"
+                                        :label="user.seat.name || 'Seat Unassigned'" 
+                                        :color="!user.seat.name ? 'danger' : 'success'"
+                                        curved 
+                                        hasDropdown 
+                                        :options="props.seatList" 
+                                        :disabledOptions="assignedSeats"
+                                        :currentUserId="user.id"
+                                        searchPlaceholder="Search" 
+                                        @select="(seat: any) => handleSelectSeat(user.id, seat)" />
                                 </td>
                                 <td class="has-text-left">
                                     {{ user.attendance != null ? moment(user.attendance, 'YYYY-MM-DD HH:mm:ss').format('DD-MM-YYYY HH:mm') : '' }}
@@ -271,6 +290,10 @@ const handleUpload = () => {
 
 .datatable-wrapper {
     width: 100%;
+
+    .table-container {
+        overflow: unset;
+    }
 
     .datatable-container {
         background: var(--white);

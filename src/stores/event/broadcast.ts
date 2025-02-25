@@ -1,20 +1,16 @@
 import { acceptHMRUpdate, defineStore } from 'pinia'
+import type { EventStats } from '/@src/interface/AnalyticsInterface'
+import { isError } from 'h3'
 
-export const useParticipants = defineStore('participants', () => {
-    const participants = reactive({
-        data: [],
-        isLoading: true,
+export const useBroadcast = defineStore('broadcast', () => {
+    const broadcastList = reactive({
+        data: [] as any[],
+        isLoading: false,
         isError: false,
-        pagination: {
-            total: 0,
-            offset: 10,
-            current: 1,
-            last: 1,
-        }
     })
 
     return {
-        participants,
+        broadcastList
     } as const
 })
 
@@ -26,5 +22,5 @@ export const useParticipants = defineStore('participants', () => {
  * @see https://vitejs.dev/guide/api-hmr.html
  */
 if (import.meta.hot) {
-    import.meta.hot.accept(acceptHMRUpdate(useParticipants, import.meta.hot))
+    import.meta.hot.accept(acceptHMRUpdate(useBroadcast, import.meta.hot))
 }

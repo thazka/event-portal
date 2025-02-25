@@ -1,18 +1,8 @@
 <script setup lang="ts">
-export interface UserData {
-    no: number
-    broadcast: string
-    total: string
-    status: string
-    created_at: string
-    complete_at: string
-}
+import moment from 'moment'
 
-interface Props {
-    data: UserData[]
-}
-
-const props = defineProps<Props>()
+import { fetchBroadcasts } from '/@src/composables/event/useBroadcast'
+import { useBroadcast } from '/@src/stores/event/broadcast'
 
 const itemsPerPageOptions = [
     { value: 10, label: '10' },
@@ -24,10 +14,12 @@ const itemsPerPageOptions = [
 const filter = reactive({
     search: '',
     page: 1,
-    limit: 10
+    offset: 10
 })
 
 const selectedRows = ref<number[]>([])
+const { broadcastList } = useBroadcast()
+
 const sortColumn = ref<keyof UserData | null>(null)
 const sortDirection = ref<'asc' | 'desc' | null>(null)
 
@@ -63,20 +55,7 @@ const getColorDown = (column: keyof UserData) => {
 }
 
 const processedData = computed(() => {
-    let result = [...props.data]
-
-    if (filter.search) {
-        const filterRe = new RegExp(filter.search, 'i')
-        result = result.filter((item) => {
-            return (
-                item.broadcast.match(filterRe) ||
-                item.status.match(filterRe) ||
-                item.total.match(filterRe) ||
-                item.created_at.match(filterRe) ||
-                item.complete_at.match(filterRe) 
-            )
-        })
-    }
+    let result = [...broadcastList.data]
 
     if (sortColumn.value && sortDirection.value) {
         result.sort((a, b) => {
@@ -103,18 +82,30 @@ const processedData = computed(() => {
 
 const handleLimit = (limit: number) => {
     filter.page = 1
-    filter.limit = limit
+    filter.offset = limit
+
+    fetchBroadcasts(filter)
 }
+
+const handleSearch = () => {
+    filter.page = 1
+
+    fetchBroadcasts(filter)
+}
+
+onMounted(() => {
+    fetchBroadcasts(filter)
+})
 </script>
 
 <template>
     <div class="datatable-toolbar is-justify-content-space-between">
-        <h3>Participants List</h3>
+        <h3>List of Participants</h3>
 
         <VFlex column-gap="10px">
             <VField>
                 <VControl icon="lucide:search">
-                    <input v-model="filter.search" class="input custom-text-filter" placeholder="Search...">
+                    <input v-model="filter.search" class="input custom-text-filter" placeholder="Search..." @keyup.enter="handleSearch">
                 </VControl>
             </VField>
             <VButtons>
@@ -223,20 +214,39 @@ const handleLimit = (limit: number) => {
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="user in processedData" :key="user.no">
-                        <td>{{ user.no }}</td>
-                        <td>{{ user.broadcast }}</td>
-                        <td>{{ user.total }}</td>
-                        <td>{{ user.status }}</td>
-                        <td>{{ user.created_at }}</td>
-                        <td class="has-text-left">{{ user.complete_at }}</td>
-                    </tr>
+                    <template v-if="broadcastList.isLoading">
+                        <tr>
+                            <td colspan="6" class="has-text-centered">
+                                <VLoader :active="true" class="mh-300" />
+                            </td>
+                        </tr>
+                    </template>
+                    <template v-else>
+                        <template v-if="!processedData.length">
+                            <tr>
+                                <td colspan="6" class="has-text-centered">
+                                    <VPlaceholderSection title="No Broadcast yet" subtitle="Upload dataset participants first and it will show up here.">
+                                        <template #image>
+                                            <VIcon icon="formkit:people" class="empty-state" />
+                                        </template>
+                                    </VPlaceholderSection>
+                                </td>
+                            </tr>
+                        </template>
+                        <template v-else>
+                            <tr v-for="(user, index) in processedData" :key="user.no">
+                                <td>{{ index + 1 + ((filter?.page - 1) * filter?.offset) }}</td>
+                                <td>{{ user.title }}</td>
+                                <td>{{ user.total }}</td>
+                                <td>{{ user.status }}</td>
+                                <td>{{ user.created_at != null ? moment(user.created_at, 'YYYY-MM-DD HH:mm:ss').format('DD-MM-YYYY HH:mm') : '' }}</td>
+                                <td class="has-text-left">{{ user.updated_at != null ? moment(user.updated_at, 'YYYY-MM-DD HH:mm:ss').format('DD-MM-YYYY HH:mm') : '' }}</td>
+                            </tr>
+                        </template>
+                    </template>
                 </tbody>
             </table>
         </div>
-        <VPlaceholderPage v-if="processedData.length === 0" title="We couldn't find any matching results."
-            subtitle="Too bad. Looks like we couldn't find any matching results for the search terms you've entered. Please try different search terms or criteria."
-            larger />
     </div>
 
     <VFlexPagination v-if="processedData.length > 5" v-model:current-page="filter.page" :item-per-page="10"
@@ -245,7 +255,7 @@ const handleLimit = (limit: number) => {
             <VDropdown left donw class="mr-2">
                 <template #button="{ toggle, isOpen }">
                     <VButton @click="toggle">
-                        {{ filter.limit }}
+                        {{ filter.offset }}
                         <span class="ml-2">
                             <i v-if="isOpen" class="lnir lnir-chevron-up" />
                             <i v-else class="lnir lnir-chevron-down" />
@@ -265,6 +275,15 @@ const handleLimit = (limit: number) => {
 </template>
 
 <style lang="scss" scoped>
+.mh-300 {
+    min-height: 300px;
+}
+
+.empty-state {
+    font-size: 94px;
+    color: #4B93AD;
+}
+
 .is-navbar {
     .datatable-toolbar {
         padding-top: 30px;

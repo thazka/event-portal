@@ -1,20 +1,14 @@
 import { acceptHMRUpdate, defineStore } from 'pinia'
 
-export const useParticipants = defineStore('participants', () => {
-    const participants = reactive({
+export const useSeats = defineStore('seats', () => {
+    const seatList = reactive({
         data: [],
         isLoading: true,
         isError: false,
-        pagination: {
-            total: 0,
-            offset: 10,
-            current: 1,
-            last: 1,
-        }
     })
 
     return {
-        participants,
+        seatList
     } as const
 })
 
@@ -26,5 +20,5 @@ export const useParticipants = defineStore('participants', () => {
  * @see https://vitejs.dev/guide/api-hmr.html
  */
 if (import.meta.hot) {
-    import.meta.hot.accept(acceptHMRUpdate(useParticipants, import.meta.hot))
+    import.meta.hot.accept(acceptHMRUpdate(useSeats, import.meta.hot))
 }

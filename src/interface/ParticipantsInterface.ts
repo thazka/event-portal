@@ -1,5 +1,5 @@
 export interface Participants {
-    no: number
+    id: number
     name: string
     company: string
     phone: string

@@ -1,4 +1,4 @@
-import { createApp as createClientApp } from 'vue'
+import { createApp as createClientApp, createSSRApp } from 'vue'
 
 import { createHead } from '@unhead/vue'
 import { InferSeoMetaPlugin } from '@unhead/addons'
@@ -14,7 +14,9 @@ const plugins = import.meta.glob<{ default?: VueroPlugin }>('./plugins/*.ts', {
 })
 
 export async function createApp() {
-  const app = createClientApp(VueroApp)
+  const app = __VUERO_SSR_BUILD__
+  ? createSSRApp(VueroApp)
+  : createClientApp(VueroApp)
 
   const router = createRouter()
 
@@ -24,6 +26,14 @@ export async function createApp() {
   app.use(head)
 
   const pinia = createPinia()
+  
+  if (__VUERO_SSR_BUILD__ && !import.meta.env.SSR) {
+    const initialState = window.__vuero__
+    if (typeof initialState?.pinia === 'object') {
+      pinia.state.value = { ...initialState.pinia }
+    }
+  }
+  
   app.use(pinia)
 
   const vuero: VueroAppContext = {

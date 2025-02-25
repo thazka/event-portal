@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useNotyf } from '/@src/composables/notyf'
-import { storeLayoutEvent, fetchLayoutEvent } from '/@src/composables/event/analytics'
+import { storeLayoutEvent, fetchLayoutEvent } from '/@src/composables/event/useAnalytics'
 
 const props = withDefaults(defineProps<{
     open?: boolean,

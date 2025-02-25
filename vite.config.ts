@@ -2,12 +2,14 @@ import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import Vue from '@vitejs/plugin-vue'
+import { env } from 'std-env'
 import VueRouter from 'unplugin-vue-router/vite'
 import { VueRouterAutoImports } from 'unplugin-vue-router'
 import Components from 'unplugin-vue-components/vite'
 import Imports from 'unplugin-auto-import/vite'
 import PurgeCSS from 'rollup-plugin-purgecss'
 import Unhead from '@unhead/addons/vite'
+import I18n from '@intlify/unplugin-vue-i18n/vite'
 import DevTools from 'vite-plugin-vue-devtools'
 import { unheadVueComposablesImports } from '@unhead/vue'
 
@@ -34,11 +36,18 @@ export default defineConfig({
         find: '/@src/',
         replacement: `/src/`,
       },
+      {
+        find: '/@server/',
+        replacement: `/server/`,
+      },
     ],
   },
   // development server configuration
   server: {
     port: 3000,
+  },
+  define: {
+    __VUERO_SSR_BUILD__: env.SSR_BUILD
   },
   // Predefine dependencies in order to prevent reloading them in the browser during development.
   optimizeDeps: {
@@ -50,6 +59,7 @@ export default defineConfig({
       'notyf',
       'v-calendar',
       '@vueform/multiselect',
+      'vue-i18n',
       '@vueform/slider'
     ],
   },
@@ -99,6 +109,12 @@ export default defineConfig({
       },
     }),
 
+    I18n({
+      include: resolve(dirname(fileURLToPath(import.meta.url)), './src/locales/**'),
+      fullInstall: false,
+      compositionOnly: true,
+    }),
+
     /**
      * Unhead provides a Vite plugin to optimise your builds, by removing composables that aren't needed and simplifying your code.
      *
@@ -116,6 +132,7 @@ export default defineConfig({
       imports: [
         'vue',
         '@vueuse/core',
+        'vue-i18n',
         VueRouterAutoImports,
         unheadVueComposablesImports,
       ],

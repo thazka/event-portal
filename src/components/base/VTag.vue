@@ -17,6 +17,7 @@ export type VTagColor =
 export type VTagSize = 'tiny'
 
 export interface VTagProps {
+  id: string
   label?: string | number
   color?: VTagColor
   size?: VTagSize
@@ -26,8 +27,10 @@ export interface VTagProps {
   elevated?: boolean
   remove?: boolean
   hasDropdown?: boolean
-  options?: string[]
+  options?: Array<{ id: string, name: string }> | string[]
   searchPlaceholder?: string
+  disabledOptions?: Record<string, number>
+  currentUserId?: number
 }
 
 const props = withDefaults(defineProps<VTagProps>(), {
@@ -36,7 +39,9 @@ const props = withDefaults(defineProps<VTagProps>(), {
   size: undefined,
   hasDropdown: false,
   options: () => [],
-  searchPlaceholder: 'Search'
+  searchPlaceholder: 'Search',
+  disabledOptions: () => ({}),
+  currentUserId: undefined
 })
 
 const emit = defineEmits<{
@@ -45,18 +50,51 @@ const emit = defineEmits<{
 
 const isOpen = ref(false)
 const searchQuery = ref('')
+const activeTag = inject('activeTag', ref<string | null>(null))
 
 const filteredOptions = computed(() => {
-  return props.options.filter(option => 
-    option.toLowerCase().includes(searchQuery.value.toLowerCase())
-  )
+  if (!props.options.length) return []
+  
+  const isObjectArray = typeof props.options[0] === 'object'
+  
+  return props.options.filter((option: any) => {
+    if (isObjectArray) {
+      const isMatch = option.name.toLowerCase().includes(searchQuery.value.toLowerCase())
+      
+      if (props.disabledOptions && typeof option === 'object') {
+        const isAssigned = props.disabledOptions[option.id] !== undefined
+        const isAssignedToCurrentUser = props.disabledOptions[option.id] === props.currentUserId
+        
+        return isMatch && (!isAssigned || isAssignedToCurrentUser)
+      }
+      
+      return isMatch
+    } else {
+      const isMatch = String(option).toLowerCase().includes(searchQuery.value.toLowerCase())
+      
+      if (props.disabledOptions) {
+        const isAssigned = props.disabledOptions[option] !== undefined
+        const isAssignedToCurrentUser = props.disabledOptions[option] === props.currentUserId
+        
+        return isMatch && (!isAssigned || isAssignedToCurrentUser)
+      }
+      
+      return isMatch
+    }
+  })
 })
 
 const toggleDropdown = () => {
-  isOpen.value = !isOpen.value
+  if (isOpen.value) {
+    isOpen.value = false
+    return
+  }
+  
+  activeTag.value = props.id
+  isOpen.value = true
 }
 
-const selectOption = (option: string) => {
+const selectOption = (option: any) => {
   emit('select', option)
   isOpen.value = false
   searchQuery.value = ''
@@ -69,6 +107,12 @@ const handleClickOutside = (event: Event) => {
   }
 }
 
+// Function to close the dropdown
+const close = () => {
+  isOpen.value = false
+  searchQuery.value = ''
+}
+
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
 })
@@ -76,10 +120,16 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
 })
+
+watch(activeTag, (newVal) => {
+  if (newVal !== props.id && isOpen.value) {
+    close()
+  }
+})
 </script>
 
 <template>
-  <div class="tag-dropdown" :class="{ 'is-active': isOpen }">
+  <div :id="props.id" class="tag-dropdown" :class="{ 'is-active': isOpen }">
     <small
       class="tag"
       :class="[
@@ -112,13 +162,16 @@ onUnmounted(() => {
         </span>
       </div>
       <div class="options-list">
-        <div 
-          v-for="option in filteredOptions" 
-          :key="option"
+        <div v-for="(option, index) in filteredOptions" 
+          :key="index"
           class="option-item"
+          :class="props.disabledOptions && typeof option === 'object' && props.disabledOptions[option.id] === props.currentUserId && 'is-current-user'"
           @click="selectOption(option)"
         >
-          {{ option }}
+          {{ typeof option === 'object' ? option.name : option }}
+          <span v-if="props.disabledOptions && typeof option === 'object' && props.disabledOptions[option.id] === props.currentUserId" class="current-user-indicator">
+            (Current)
+          </span>
         </div>
       </div>
     </div>
@@ -126,6 +179,16 @@ onUnmounted(() => {
 </template>
 
 <style lang="scss" scoped>
+.is-current-user {
+  background-color: rgba(0, 128, 0, 0.1);
+}
+
+.current-user-indicator {
+  margin-left: 5px;
+  font-size: 0.8em;
+  color: green;
+}
+
 .tag-dropdown {
   position: relative;
   display: inline-block;
@@ -362,15 +425,13 @@ onUnmounted(() => {
 
 .dropdown-content {
   position: absolute;
-  top: 100%;
-  left: 0;
-  margin-top: 0.5rem;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  border: 1px solid var(--fade-grey);
-  min-width: 200px;
-  z-index: 20;
+  z-index: 100; /* High z-index to ensure it appears on top */
+  background-color: white;
+  border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  width: 200px; /* or whatever width you prefer */
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 .search-wrapper {

@@ -39,7 +39,7 @@ const decryptCredentials = (encrypted: string): { email: string; password: strin
 onMounted(() => {
     if (userSession.isLoggedIn) {
         router.push('/app')
-
+        console.log('a')
     }
 
     const rememberedCreds = localStorage.getItem('rememberedCredentials')
@@ -100,71 +100,69 @@ useHead({
 </script>
 
 <template>
-    <div>
-        <div class="modern-login p-0">
-            <div class="underlay h-hidden-mobile h-hidden-tablet-p" />
+    <div class="modern-login p-0">
+        <div class="underlay h-hidden-mobile h-hidden-tablet-p" />
 
-            <div class="columns is-gapless is-vcentered">
-                <div class="column is-relative is-8 h-hidden-mobile h-hidden-tablet-p">
-                    <div class="hero is-fullheight is-image"></div>
+        <div class="columns is-gapless is-vcentered">
+            <div class="column is-relative is-8 h-hidden-mobile h-hidden-tablet-p">
+                <div class="hero is-fullheight is-image"></div>
+            </div>
+            <div class="column is-4 is-relative">
+                <div class="top-tools">
+                    <img :src="eventLogo" alt="">
                 </div>
-                <div class="column is-4 is-relative">
-                    <div class="top-tools">
-                        <img :src="eventLogo" alt="">
-                    </div>
-                    <div class="is-form">
-                        <div class="is-form-inner">
-                            <div class="form-text">
-                                <h2>Sign In</h2>
-                                <p>Welcome back to your account.</p>
-                            </div>
-                            <form method="post" novalidate class="login-wrapper" @submit.prevent="handleLogin">
-                                <VField>
-                                    <VControl icon="lnil lnil-envelope autv-icon">
-                                        <VLabel class="auth-label">
-                                            Email Address
-                                        </VLabel>
-                                        <VInput v-model="formData.email" type="email" autocomplete="email" />
-                                    </VControl>
-                                </VField>
-                                <VField>
-                                    <VControl icon="lnil lnil-lock-alt autv-icon">
-                                        <VLabel class="auth-label">
-                                            Password
-                                        </VLabel>
-                                        <VInput v-model="formData.password" type="password"
-                                            autocomplete="current-password" />
-                                    </VControl>
-                                </VField>
-
-                                <VField>
-                                    <VControl class="is-flex">
-                                        <VLabel raw class="remember-toggle">
-                                            <VInput :checked="formData.rememberMe" @change="handleRememberMe" raw
-                                                type="checkbox" />
-                                            <span class="toggler">
-                                                <span class="active">
-                                                    <VIcon icon="lucide:check" />
-                                                </span>
-                                                <span class="inactive">
-                                                    <VIcon icon="lucide:circle" />
-                                                </span>
-                                            </span>
-                                        </VLabel>
-                                        <VLabel raw class="remember-me">
-                                            Remember Me
-                                        </VLabel>
-                                    </VControl>
-                                </VField>
-
-                                <div class="button-wrap has-help">
-                                    <VButton id="login-button" :loading="isLoading" class="has-fullwidth"
-                                        color="primary" type="submit" size="big" rounded raised bold>
-                                        Sign In
-                                    </VButton>
-                                </div>
-                            </form>
+                <div class="is-form">
+                    <div class="is-form-inner">
+                        <div class="form-text">
+                            <h2>Sign In</h2>
+                            <p>Welcome back to your account.</p>
                         </div>
+                        <form method="post" novalidate class="login-wrapper" @submit.prevent="handleLogin">
+                            <VField>
+                                <VControl icon="lnil lnil-envelope autv-icon">
+                                    <VLabel class="auth-label">
+                                        Email Address
+                                    </VLabel>
+                                    <VInput v-model="formData.email" type="email" autocomplete="email" />
+                                </VControl>
+                            </VField>
+                            <VField>
+                                <VControl icon="lnil lnil-lock-alt autv-icon">
+                                    <VLabel class="auth-label">
+                                        Password
+                                    </VLabel>
+                                    <VInput v-model="formData.password" type="password"
+                                        autocomplete="current-password" />
+                                </VControl>
+                            </VField>
+
+                            <VField>
+                                <VControl class="is-flex">
+                                    <VLabel raw class="remember-toggle">
+                                        <VInput :checked="formData.rememberMe" @change="handleRememberMe" raw
+                                            type="checkbox" />
+                                        <span class="toggler">
+                                            <span class="active">
+                                                <VIcon icon="lucide:check" />
+                                            </span>
+                                            <span class="inactive">
+                                                <VIcon icon="lucide:circle" />
+                                            </span>
+                                        </span>
+                                    </VLabel>
+                                    <VLabel raw class="remember-me">
+                                        Remember Me
+                                    </VLabel>
+                                </VControl>
+                            </VField>
+
+                            <div class="button-wrap has-help">
+                                <VButton id="login-button" :loading="isLoading" class="has-fullwidth" color="primary"
+                                    type="submit" size="big" rounded raised bold>
+                                    Sign In
+                                </VButton>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>

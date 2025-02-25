@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { fetchEventAnalytics, fetchLayoutEvent } from '/@src/composables/event/analytics'
-import { fetchEventParticipants } from '/@src/composables/event/participants'
+import { fetchEventAnalytics, fetchLayoutEvent } from '/@src/composables/event/useAnalytics'
+import { fetchEventParticipants, updateParticipant } from '/@src/composables/event/useParticipants'
 import { useRadialBar } from '/@src/data/radialBarChart'
 import { itemsPerPageOptions } from '/@src/data/options'
 import type { Participants } from '/@src/interface/ParticipantsInterface'
 import { useAnalytics } from '/@src/stores/event/analytics'
 import { useParticipants } from '/@src/stores/event/participants'
+import { fetchSeatList } from '/@src/composables/event/useSeats'
+import { useSeats } from '/@src/stores/event/seats'
 
 const filter = reactive({
     search: '',
@@ -21,9 +23,12 @@ const sortDirection = ref<'asc' | 'desc' | null>(null)
 
 const modalSeat = ref(false)
 const modalDataset = ref(false)
+const notyf = useNotyf()
 
 const { participants } = useParticipants()
 const { analytics, seatLayout } = useAnalytics()
+const { seatList } = useSeats()
+
 const openModalSeat = () => {
     modalSeat.value = true
 }
@@ -48,9 +53,27 @@ const handleSearch = () => {
 }
 
 // Handle seat selection
-const handleSelectSeat = (seat: string) => {
-    console.log('Seat selected:', seat)
-    // Implement any additional functionality needed when a seat is selected
+const handleSelectSeat = (userId: number, seat: any) => {
+    const seatAlreadyAssigned = participants.data.some((participant: any) => 
+        participant.seat && 
+        participant.seat.id == seat && 
+        participant.id != userId
+    );
+    
+    if (seatAlreadyAssigned) {
+        notyf.error('This seat is already assigned to another participant');
+        return;
+    }
+    
+    updateParticipant(userId, { seat_id: seat.id }).then(() => {
+        // fetchEventParticipants(filter)
+        participants.data.find((participant: any) => {
+            if (participant.id == userId) {
+                participant.seat.id = seat.id;
+                participant.seat.name = seat.name;
+            }
+        });
+    })
 }
 
 const handleSeat = () => {
@@ -64,7 +87,10 @@ onMounted(() => {
 
     Promise.all([
         fetchEventParticipants(filter),
-        fetchEventAnalytics()
+        fetchEventAnalytics(),
+        fetchSeatList({
+            offset: 99
+        })
     ])
 })
 
@@ -165,7 +191,7 @@ useHead({
             </div>
 
             <VTableList :data="participants.data" :loading="participants.isLoading" :filter="filter"
-                :sort-column="sortColumn" :sort-direction="sortDirection" @update:filter="filter = $event"
+                :sort-column="sortColumn" :sort-direction="sortDirection" :seat-list="seatList.data" @update:filter="filter = $event"
                 @update:sort-column="sortColumn = $event" @update:sort-direction="sortDirection = $event"
                 @select-seat="handleSelectSeat" @upload="modalDataset = true" />
 

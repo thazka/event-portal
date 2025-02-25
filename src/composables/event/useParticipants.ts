@@ -35,3 +35,12 @@ export const fetchEventParticipants = async (params: any) => {
         return error
     }
 }
+
+export const updateParticipant = async (id: number, params: any) => {
+    try {
+        const { data } = await api.put(`/v1/participant/${id}`, params)
+        return data
+    } catch (error) {
+        return error
+    }
+}
