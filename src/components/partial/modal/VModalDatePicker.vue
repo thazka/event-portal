@@ -5,11 +5,12 @@ const props = withDefaults(defineProps(), {
 
 const emit = defineEmits(["close", "upload"]);
 const notyf = useNotyf();
-const selectedDate = ref(new Date())
 
-const handleSchedule = (data: { date: Date, time: string, format: string }) => {
-  console.log('Jadwal dipilih:', data)  
-}
+const selectedDateTime = ref(new Date());
+
+const handleSchedule = (scheduleData: any) => {
+  console.log('Jadwal yang dipilih:', scheduleData);
+};
 
 const closeModal = () => {
     emit("close");
@@ -17,15 +18,11 @@ const closeModal = () => {
 </script>
 
 <template>
-    <Modal id="modal-date" :open="props.open" title="" size="medium" actions="between" middletitle noborder noheader nofooter @close="closeModal">
+    <VModal id="modal-date" :open="props.open" title="" size="small" actions="between" middletitle noborder noheader @close="closeModal">
         <template #content>
-            
-            <DatePicker
-                v-model:date="selectedDate"
-                @schedule="handleSchedule"
-            />
+            <DateComponent v-model="selectedDateTime" @schedule="handleSchedule" />
         </template>
-    </Modal>
+    </VModal>
 </template>
 
 <style lang="scss" scoped>

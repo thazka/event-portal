@@ -50,7 +50,7 @@ const openModalBroadcast = () => {
 
 const openModalSchedule = () => {
     modalBroadcast.value = false
-    
+
     modalDatePicker.value = true
     // setTimeout(() => {
     // }, 100)
@@ -78,16 +78,17 @@ const activeTab = (tab: string) => {
 <template>
     <div>
         <VTabs slider type="rounded" :selected="selectedTab" :tabs="tabs" @update:selected="activeTab" />
-
+        
         <template v-if="selectedTab === 'broadcast'">
             <!-- Toolbar moved to parent -->
             <div class="datatable-toolbar is-justify-content-space-between">
-                <h3>Participants List</h3>
+                <h3>List of Participants</h3>
 
                 <VFlex column-gap="10px">
                     <VField>
                         <VControl icon="lucide:search">
-                            <input v-model="filter.search" class="input custom-text-filter" :disabled="participants.isLoading" placeholder="Search..." @keyup.enter="handleSearch">
+                            <input v-model="filter.search" class="input custom-text-filter"
+                                :disabled="participants.isLoading" placeholder="Search..." @keyup.enter="handleSearch">
                         </VControl>
                     </VField>
                     <VButtons>
@@ -102,19 +103,14 @@ const activeTab = (tab: string) => {
             </div>
 
             <!-- Table component -->
-            <VTableCheckbox 
-                :data="participants.data"
-                :filter="filter"
-                :loading="participants.isLoading"
-                :selectedRows="selectedRows"
-                :sortColumn="sortColumn"
-                :sortDirection="sortDirection"
-                @broadcast="openModalBroadcast"
-            />
+            <VTableCheckbox :data="participants.data" :filter="filter" :loading="participants.isLoading"
+                :selectedRows="selectedRows" :sortColumn="sortColumn" :sortDirection="sortDirection"
+                @broadcast="openModalBroadcast" />
 
             <!-- Pagination moved to parent -->
-            <VFlexPagination v-if="participants.data.length" v-model:current-page="filter.page" :item-per-page="filter.offset"
-                :total-items="participants.pagination?.total" :max-links-displayed="7" no-router class="mt-4" @update:currentPage="changePage">
+            <VFlexPagination v-if="participants.data.length" v-model:current-page="filter.page"
+                :item-per-page="filter.offset" :total-items="participants.pagination?.total" :max-links-displayed="7"
+                no-router class="mt-4" @update:currentPage="changePage">
                 <template #before-pagination>
                     <VDropdown left donw class="mr-2">
                         <template #button="{ toggle, isOpen }">

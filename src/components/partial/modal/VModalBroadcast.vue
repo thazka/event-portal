@@ -27,7 +27,7 @@ const closeModal = () => {
 </script>
 
 <template>
-    <Modal id="modal-broadcast" :open="props.open" title="Write a message here to send to selected participants" class="modal-broadcast"
+    <VModal id="modal-broadcast" :open="props.open" title="Write a message here to send to selected participants" class="modal-broadcast"
         size="medium" actions="between" middletitle noborder @close="closeModal">
         <template #content>
             <VField label="Broadcast Title">
@@ -54,7 +54,7 @@ const closeModal = () => {
                 </VButton>
             </VButtons>
         </template>
-    </Modal>
+    </VModal>
 </template>
 
 <style lang="scss"scoped>

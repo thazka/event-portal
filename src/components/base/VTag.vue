@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ref, computed, inject, watch, onMounted, onUnmounted } from 'vue'
+
 export type VTagColor =
   | 'primary'
   | 'secondary'
@@ -16,6 +18,12 @@ export type VTagColor =
 
 export type VTagSize = 'tiny'
 
+// Update options interface to match the new response format
+export interface TagOption {
+  label: string
+  value: number
+}
+
 export interface VTagProps {
   id?: string
   label?: string | number
@@ -27,9 +35,9 @@ export interface VTagProps {
   elevated?: boolean
   remove?: boolean
   hasDropdown?: boolean
-  options?: Array<{ id: string, name: string }> | string[]
+  options?: TagOption[]
   searchPlaceholder?: string
-  disabledOptions?: Record<string, number>
+  disabledOptions?: Record<number, number> // Update to support numeric keys
   currentUserId?: number
 }
 
@@ -46,7 +54,7 @@ const props = withDefaults(defineProps<VTagProps>(), {
 })
 
 const emit = defineEmits<{
-  (e: 'select', value: string): void
+  (e: 'select', value: number): void // Update to emit numeric values
 }>()
 
 const isOpen = ref(false)
@@ -55,33 +63,20 @@ const activeTag = inject('activeTag', ref<string | null>(null))
 
 const filteredOptions = computed(() => {
   if (!props.options.length) return []
-  
-  const isObjectArray = typeof props.options[0] === 'object'
-  
-  return props.options.filter((option: any) => {
-    if (isObjectArray) {
-      const isMatch = option.name.toLowerCase().includes(searchQuery.value.toLowerCase())
-      
-      if (props.disabledOptions && typeof option === 'object') {
-        const isAssigned = props.disabledOptions[option.id] !== undefined
-        const isAssignedToCurrentUser = props.disabledOptions[option.id] === props.currentUserId
-        
-        return isMatch && (!isAssigned || isAssignedToCurrentUser)
-      }
-      
-      return isMatch
-    } else {
-      const isMatch = String(option).toLowerCase().includes(searchQuery.value.toLowerCase())
-      
-      if (props.disabledOptions) {
-        const isAssigned = props.disabledOptions[option] !== undefined
-        const isAssignedToCurrentUser = props.disabledOptions[option] === props.currentUserId
-        
-        return isMatch && (!isAssigned || isAssignedToCurrentUser)
-      }
-      
-      return isMatch
+
+  return props.options.filter((option: TagOption) => {
+    // Check if the option label matches the search query
+    const isMatch = option.label.toLowerCase().includes(searchQuery.value.toLowerCase())
+
+    // Check if the option is disabled (already assigned to another user)
+    if (props.disabledOptions) {
+      const isAssigned = props.disabledOptions[option.value] !== undefined
+      const isAssignedToCurrentUser = props.disabledOptions[option.value] === props.currentUserId
+
+      return isMatch && (!isAssigned || isAssignedToCurrentUser)
     }
+
+    return isMatch
   })
 })
 
@@ -90,13 +85,13 @@ const toggleDropdown = () => {
     isOpen.value = false
     return
   }
-  
+
   activeTag.value = props.id
   isOpen.value = true
 }
 
-const selectOption = (option: any) => {
-  emit('select', option)
+const selectOption = (option: TagOption) => {
+  emit('select', option.value) // Emit the value (seat id)
   isOpen.value = false
   searchQuery.value = ''
 }
@@ -131,46 +126,35 @@ watch(activeTag, (newVal) => {
 
 <template>
   <div :id="props.id" class="tag-dropdown" :class="{ 'is-active': isOpen }">
-    <small
-      class="tag"
-      :class="[
-        props.color && 'is-' + props.color,
-        props.size && 'is-' + props.size,
-        props.rounded && 'is-rounded',
-        props.curved && 'is-curved',
-        props.outlined && 'is-outlined',
-        props.elevated && 'is-elevated',
-        props.remove && 'is-delete',
-        props.hasDropdown && 'has-dropdown'
-      ]"
-      @click="toggleDropdown"
-    >
+    <small class="tag" :class="[
+      props.color && 'is-' + props.color,
+      props.size && 'is-' + props.size,
+      props.rounded && 'is-rounded',
+      props.curved && 'is-curved',
+      props.outlined && 'is-outlined',
+      props.elevated && 'is-elevated',
+      props.remove && 'is-delete',
+      props.hasDropdown && 'has-dropdown'
+    ]" @click="toggleDropdown">
       <slot>{{ props.label }}</slot>
       <span v-if="props.hasDropdown" class="dropdown-arrow">▼</span>
     </small>
 
     <div v-if="isOpen && props.hasDropdown" class="dropdown-content">
       <div class="search-wrapper">
-        <input 
-          v-model="searchQuery"
-          type="text" 
-          :placeholder="props.searchPlaceholder"
-          class="search-input"
-          @click.stop
-        >
+        <input v-model="searchQuery" type="text" :placeholder="props.searchPlaceholder" class="search-input"
+          @click.stop>
         <span class="search-icon">
           <i class="fas fa-search"></i>
         </span>
       </div>
       <div class="options-list">
-        <div v-for="(option, index) in filteredOptions" 
-          :key="index"
-          class="option-item"
-          :class="props.disabledOptions && typeof option === 'object' && props.disabledOptions[option.id] === props.currentUserId && 'is-current-user'"
-          @click="selectOption(option)"
-        >
-          {{ typeof option === 'object' ? option.name : option }}
-          <span v-if="props.disabledOptions && typeof option === 'object' && props.disabledOptions[option.id] === props.currentUserId" class="current-user-indicator">
+        <div v-for="(option, index) in filteredOptions" :key="index" class="option-item"
+          :class="props.disabledOptions && props.disabledOptions[option.value] === props.currentUserId && 'is-current-user'"
+          @click="selectOption(option)">
+          {{ option.label }}
+          <span v-if="props.disabledOptions && props.disabledOptions[option.value] === props.currentUserId"
+            class="current-user-indicator">
             (Current)
           </span>
         </div>
@@ -398,7 +382,7 @@ watch(activeTag, (newVal) => {
       background: transparent;
       padding: 0 2rem 0 1rem;
       font-size: 0.9rem;
-      
+
       &:focus {
         outline: none;
       }
@@ -417,7 +401,7 @@ watch(activeTag, (newVal) => {
   &.is-curved.is-search {
     height: 2.6em;
     border-radius: 8px;
-    
+
     .search-input {
       border-radius: 8px;
     }
@@ -426,11 +410,13 @@ watch(activeTag, (newVal) => {
 
 .dropdown-content {
   position: absolute;
-  z-index: 100; /* High z-index to ensure it appears on top */
+  z-index: 100;
+  /* High z-index to ensure it appears on top */
   background-color: white;
   border-radius: 4px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  width: 200px; /* or whatever width you prefer */
+  width: 200px;
+  /* or whatever width you prefer */
   max-height: 300px;
   overflow-y: auto;
 }
@@ -485,18 +471,17 @@ watch(activeTag, (newVal) => {
 
 .is-dark {
   .tag {
-    &:not(
-        .is-primary,
-        .is-secondary,
-        .is-success,
-        .is-info,
-        .is-warning,
-        .is-danger,
-        .is-orange,
-        .is-green,
-        .is-blue,
-        .is-purple
-      ) {
+
+    &:not(.is-primary,
+      .is-secondary,
+      .is-success,
+      .is-info,
+      .is-warning,
+      .is-danger,
+      .is-orange,
+      .is-green,
+      .is-blue,
+      .is-purple) {
       background: color-mix(in oklab, var(--dark-sidebar), white 10%);
       border-color: color-mix(in oklab, var(--dark-sidebar), white 10%);
       color: var(--dark-dark-text);
@@ -522,6 +507,7 @@ watch(activeTag, (newVal) => {
 
       .search-input {
         color: var(--dark-dark-text);
+
         &::placeholder {
           color: var(--dark-dark-text);
           opacity: 0.5;
@@ -552,7 +538,7 @@ watch(activeTag, (newVal) => {
 
   .options-list .option-item {
     color: var(--dark-dark-text);
-    
+
     &:hover {
       background: color-mix(in oklab, var(--dark-sidebar), white 15%);
     }

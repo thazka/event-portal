@@ -1,30 +1,16 @@
 <script setup lang="ts">
+import { ref, computed, provide } from 'vue'
 import moment from 'moment'
-import type { Participants } from '/@src/interface/ParticipantsInterface'
+import { Participant, Props } from '/@src/interface/AnalyticsInterface'
 
-const activeTag = ref(null);
-provide('activeTag', activeTag);
+const activeTag = ref(null)
+provide('activeTag', activeTag)
 
-interface Props {
-    data: Participants[]
-    filter: {
-        search: string
-        page: number
-        offset: number
-        event_id: number
-    }
-    loading: boolean
-    sortColumn: keyof Participants | null
-    sortDirection: 'asc' | 'desc' | null
-    seatList: string[]
-}
-
-// Define emits for events we need to pass up to parent
 const emit = defineEmits<{
     'update:filter': [filter: Props['filter']]
-    'update:sortColumn': [column: keyof Participants | null]
+    'update:sortColumn': [column: Props['sortColumn']]
     'update:sortDirection': [direction: 'asc' | 'desc' | null]
-    'select-seat': [userId: number, seat: number]
+    'select-seat': [userId: number, seatId: number]
     'upload': []
 }>()
 
@@ -32,18 +18,18 @@ const props = defineProps<Props>()
 const notyf = useNotyf()
 
 const assignedSeats = computed(() => {
-    const seats: Record<string, number> = {}
-    
-    props.data.forEach((participant: any) => {
-        if (participant.seat && participant.seat.name) {
-         seats[participant.seat.id] = participant.id
+    const seats: Record<number, number> = {}
+
+    props.data.forEach(participant => {
+        if (participant.event?.seat_id) {
+            seats[participant.event.seat_id] = participant.id
         }
     })
-    
+
     return seats
 })
 
-const handleSort = (column: keyof Participants) => {
+const handleSort = (column: Props['sortColumn']) => {
     if (props.sortColumn === column) {
         if (props.sortDirection === 'asc') {
             emit('update:sortDirection', 'desc')
@@ -60,48 +46,75 @@ const handleSort = (column: keyof Participants) => {
     }
 }
 
-const getColorUp = (column: keyof Participants) => {
+const getColorUp = (column: Props['sortColumn']) => {
     if (props.sortColumn === column && props.sortDirection === 'asc') {
         return '#1B1B1B'
     }
     return '#D9D9D9'
 }
 
-const getColorDown = (column: keyof Participants) => {
+const getColorDown = (column: Props['sortColumn']) => {
     if (props.sortColumn === column && props.sortDirection === 'desc') {
         return '#1B1B1B'
     }
     return '#D9D9D9'
 }
 
-const processedData = computed<any>(() => {
+// Get seat name for a participant
+const getSeatName = (participant: Participant) => {
+    if (!participant.event || !participant.event.seat_id) {
+        return null
+    }
+
+    const seat = props.seatList.find(seat => seat.id === participant.event.seat_id)
+    return seat ? seat.name : null
+}
+
+const processedData = computed(() => {
     let result = [...props.data]
 
+    // Handle search filtering
     if (props.filter.search) {
         const filterRe = new RegExp(props.filter.search, 'i')
         result = result.filter((item) => {
+            const seatName = getSeatName(item) || ''
+            const attendanceTime = item.event?.attendance || ''
+
             return (
                 item.name.match(filterRe) ||
                 item.company.match(filterRe) ||
                 item.phone.match(filterRe) ||
-                item.seat.match(filterRe) ||
-                item.attendance.match(filterRe)
+                seatName.match(filterRe) ||
+                attendanceTime.match(filterRe)
             )
         })
     }
 
+    // Handle sorting
     if (props.sortColumn && props.sortDirection) {
         result.sort((a, b) => {
-            const aValue = a[props.sortColumn!]
-            const bValue = b[props.sortColumn!]
+            let aValue, bValue;
 
+            // Handle special cases for nested properties
+            if (props.sortColumn === 'seat') {
+                aValue = getSeatName(a) || ''
+                bValue = getSeatName(b) || ''
+            } else if (props.sortColumn === 'attendance') {
+                aValue = a.event?.attendance || ''
+                bValue = b.event?.attendance || ''
+            } else {
+                aValue = a[props.sortColumn as keyof Participant]
+                bValue = b[props.sortColumn as keyof Participant]
+            }
+
+            // Handle number comparison
             if (typeof aValue === 'number' && typeof bValue === 'number') {
                 return props.sortDirection === 'asc' ? aValue - bValue : bValue - aValue
             }
 
             // Handle string comparison
-            const aString = String(aValue).toLowerCase()
-            const bString = String(bValue).toLowerCase()
+            const aString = String(aValue || '').toLowerCase()
+            const bString = String(bValue || '').toLowerCase()
 
             if (props.sortDirection === 'asc') {
                 return aString.localeCompare(bString)
@@ -113,18 +126,28 @@ const processedData = computed<any>(() => {
     return result
 })
 
-const handleSelectSeat = (userId: number, seat: any) => {
-    if (assignedSeats.value[seat] && assignedSeats.value[seat] != userId) {
+const handleSelectSeat = (userId: number, seatId: number) => {
+    // Validate if seat is already assigned
+    if (assignedSeats.value[seatId] && assignedSeats.value[seatId] !== userId) {
         notyf.error(`This seat is already assigned to another participant`)
         return
     }
-    
-    emit('select-seat', userId, seat)
+
+    // Emit event for parent to handle
+    emit('select-seat', userId, seatId)
 }
 
 const handleUpload = () => {
     emit('upload')
 }
+
+// Format seats for dropdown
+const formattedSeatList = computed(() => {
+    return props.seatList.map(seat => ({
+        label: seat.name,
+        value: seat.id
+    }))
+})
 </script>
 
 <template>
@@ -228,7 +251,7 @@ const handleUpload = () => {
                 <tbody>
                     <template v-if="props.loading">
                         <tr>
-                            <td colspan="6" class="has-text-centered">
+                            <td colspan="7" class="has-text-centered">
                                 <VLoader :active="true" class="mh-300" />
                             </td>
                         </tr>
@@ -236,13 +259,15 @@ const handleUpload = () => {
                     <template v-else>
                         <template v-if="!processedData.length">
                             <tr>
-                                <td colspan="6" class="has-text-centered">
-                                    <VPlaceholderSection title="No Participants yet" subtitle="Upload dataset participants first and it will show up here.">
+                                <td colspan="7" class="has-text-centered">
+                                    <VPlaceholderSection title="No Participants yet"
+                                        subtitle="Upload dataset participants first and it will show up here.">
                                         <template #image>
                                             <VIcon icon="formkit:people" class="empty-state" />
                                         </template>
                                         <template #action>
-                                            <VButton color="primary" @click.prevent="handleUpload">Input Participants Dataset </VButton>
+                                            <VButton color="primary" @click.prevent="handleUpload">Input Participants
+                                                Dataset </VButton>
                                         </template>
                                     </VPlaceholderSection>
                                 </td>
@@ -255,20 +280,16 @@ const handleUpload = () => {
                                 <td>{{ user.company }}</td>
                                 <td>{{ user.phone }}</td>
                                 <td>
-                                    <!-- <VTag 
-                                        :id="`option-${index}`"
-                                        :label="user.seat.name || 'Seat Unassigned'" 
-                                        :color="!user.seat.name ? 'danger' : 'success'"
-                                        curved 
-                                        hasDropdown 
-                                        :options="props.seatList" 
-                                        :disabledOptions="assignedSeats"
-                                        :currentUserId="user.id"
-                                        searchPlaceholder="Search" 
-                                        @select="(seat: any) => handleSelectSeat(user.id, seat)" /> -->
+                                    <!-- {{ formattedSeatList }} -->
+                                    <VTag :id="`option-${index}`" :label="getSeatName(user) || 'Seat Unassigned'"
+                                        :color="!getSeatName(user) ? 'danger' : 'success'" curved hasDropdown
+                                        :options="formattedSeatList" :disabledOptions="assignedSeats"
+                                        :currentUserId="user.id" searchPlaceholder="Search"
+                                        @select="(seatId: number) => handleSelectSeat(user.id, seatId)" />
                                 </td>
                                 <td class="has-text-left">
-                                    {{ user.attendance != null ? moment(user.attendance, 'YYYY-MM-DD HH:mm:ss').format('DD-MM-YYYY HH:mm') : '' }}
+                                    {{ user.event?.attendance ?
+                                        moment(user.event.attendance).format('DD-MM-YYYY HH:mm') : '' }}
                                 </td>
                             </tr>
                         </template>
@@ -385,106 +406,6 @@ const handleUpload = () => {
     .checkbox {
         padding: 0;
     }
-
-    .product-photo {
-        width: 80px;
-        height: 80px;
-        object-fit: contain;
-    }
-
-    .file-icon {
-        width: 46px;
-        height: 46px;
-        object-fit: contain;
-    }
-
-    .drinks-icon {
-        display: block;
-        max-width: 48px;
-        border-radius: var(--radius-rounded);
-        border: 1px solid var(--fade-grey);
-    }
-
-    .negative-icon,
-    .positive-icon {
-        .iconify {
-            height: 16px;
-            width: 16px;
-        }
-    }
-
-    .positive-icon {
-        .iconify {
-            color: var(--success);
-
-            * {
-                stroke-width: 4px;
-            }
-        }
-    }
-
-    .negative-icon {
-        &.is-danger {
-            .iconify {
-                color: var(--danger) !important;
-            }
-        }
-
-        .iconify {
-            color: var(--light-text);
-
-            * {
-                stroke-width: 4px;
-            }
-        }
-    }
-
-    .price {
-        color: var(--dark-text);
-        font-weight: 500;
-
-        &::before {
-            content: '$';
-        }
-
-        &.price-free {
-            color: var(--light-text);
-        }
-    }
-
-    .status {
-        display: flex;
-        align-items: center;
-
-        &.is-available {
-            .iconify {
-                color: var(--success);
-            }
-        }
-
-        &.is-busy {
-            .iconify {
-                color: var(--danger);
-            }
-        }
-
-        &.is-offline {
-            .iconify {
-                color: var(--light-text);
-            }
-        }
-
-        .iconify {
-            margin-right: 8px;
-            font-size: 8px;
-        }
-
-        span {
-            font-family: var(--font);
-            font-size: 0.9rem;
-            color: var(--light-text);
-        }
-    }
 }
 
 .is-dark {
@@ -502,10 +423,6 @@ const handleUpload = () => {
         td {
             border-color: color-mix(in oklab, var(--dark-sidebar), white 12%);
             color: var(--dark-dark-text);
-        }
-
-        .drinks-icon {
-            border-color: color-mix(in oklab, var(--dark-sidebar), white 12%);
         }
     }
 }

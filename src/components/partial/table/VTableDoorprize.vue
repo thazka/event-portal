@@ -1,7 +1,20 @@
 <script setup lang="ts">
-import { fetchDoorprize } from '/@src/composables/event/useDoorprize'
+import { fetchDoorprize, deleteDoorprize } from '/@src/composables/event/useDoorprize'
 import { itemsPerPageOptions } from '/@src/data/options'
 import { useDoorprize } from '/@src/stores/event/doorprize'
+
+// Define interface for doorprize data based on the API response
+interface DoorprizeData {
+    id: number
+    name: string
+    photo: string
+    created_at: string
+    updated_at: string
+    deleted_at: null | string
+    created_by: number
+    total_winner: number
+    participants: any[]
+}
 
 const filter = reactive({
     search: '',
@@ -10,13 +23,14 @@ const filter = reactive({
 })
 
 const router = useRouter()
+const notyf = useNotyf()
 const { doorprize } = useDoorprize()
 
-const sortColumn = ref<keyof UserData | null>(null)
+const sortColumn = ref<keyof DoorprizeData | null>(null)
 const sortDirection = ref<'asc' | 'desc' | null>(null)
 const modalAddDoorprize = ref(false)
 
-const handleSort = (column: keyof UserData) => {
+const handleSort = (column: keyof DoorprizeData) => {
     if (sortColumn.value === column) {
         if (sortDirection.value === 'asc') {
             sortDirection.value = 'desc'
@@ -33,34 +47,45 @@ const handleSort = (column: keyof UserData) => {
     }
 }
 
-const getColorUp = (column: keyof UserData) => {
-    if (sortColumn.value === column && sortDirection.value === 'asc') {
-        return '#1B1B1B'
-    }
-    return '#D9D9D9'
+const getColorUp = (column: keyof DoorprizeData) => {
+    return sortColumn.value === column && sortDirection.value === 'asc' ? '#1B1B1B' : '#D9D9D9'
 }
 
-const getColorDown = (column: keyof UserData) => {
-    if (sortColumn.value === column && sortDirection.value === 'desc') {
-        return '#1B1B1B'
-    }
-    return '#D9D9D9'
+const getColorDown = (column: keyof DoorprizeData) => {
+    return sortColumn.value === column && sortDirection.value === 'desc' ? '#1B1B1B' : '#D9D9D9'
+}
+
+const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    })
 }
 
 const processedData = computed(() => {
+    if (!doorprize.data || !Array.isArray(doorprize.data)) {
+        return []
+    }
+
     let result = [...doorprize.data]
 
+    // Apply search filter
     if (filter.search) {
         const filterRe = new RegExp(filter.search, 'i')
         result = result.filter((item) => {
             return (
-                item.doorprize_name.match(filterRe) ||
-                item.winner.match(filterRe) ||
-                item.company.match(filterRe)
+                item.name.match(filterRe) ||
+                // Check if participants exist before searching
+                (Array.isArray(item.participants) && item.participants.some(p =>
+                    (p.name && p.name.match(filterRe)) ||
+                    (p.company && p.company.match(filterRe))
+                ))
             )
         })
     }
 
+    // Apply sorting
     if (sortColumn.value && sortDirection.value) {
         result.sort((a, b) => {
             const aValue = a[sortColumn.value!]
@@ -70,8 +95,8 @@ const processedData = computed(() => {
                 return sortDirection.value === 'asc' ? aValue - bValue : bValue - aValue
             }
 
-            const aString = String(aValue).toLowerCase()
-            const bString = String(bValue).toLowerCase()
+            const aString = String(aValue || '').toLowerCase()
+            const bString = String(bValue || '').toLowerCase()
 
             if (sortDirection.value === 'asc') {
                 return aString.localeCompare(bString)
@@ -80,7 +105,18 @@ const processedData = computed(() => {
         })
     }
 
-    return result
+    // Add index for "No" column
+    return result.map((item, index) => ({
+        ...item,
+        no: index + 1
+    }))
+})
+
+// Pagination calculations
+const paginatedData = computed(() => {
+    const startIndex = (filter.page - 1) * filter.offset
+    const endIndex = startIndex + filter.offset
+    return processedData.value.slice(startIndex, endIndex)
 })
 
 const handleLimit = (limit: number) => {
@@ -96,13 +132,47 @@ const openSpin = () => {
     router.push('/app/luckydraw')
 }
 
+const handleUpload = () => {
+    // Implementation for uploading participants dataset
+    console.log('Upload participants dataset')
+}
+
+// Helper to get winner names (assuming they would be in participants array)
+const getWinnerNames = (doorprize: DoorprizeData) => {
+    if (!doorprize.participants || !doorprize.participants.length) {
+        return 'Not drawn yet'
+    }
+    // Get only winners
+    const winners = doorprize.participants.filter(p => p.is_winner)
+    if (!winners.length) {
+        return 'Not drawn yet'
+    }
+    return winners.map(w => w.name).join(', ')
+}
+
+const handleDelete = (id: number) => {
+    deleteDoorprize(id).then((res: any) => {
+        if (res.status) {
+            fetchDoorprize(filter)
+            notyf.success('Data deleted succesfully')
+        } else {
+            notyf.error('Data deleted failed!')
+        }
+    })
+}
+
 onMounted(() => {
     fetchDoorprize(filter)
 })
+
+// Watch for filter changes to refetch data
+watch([() => filter.search, () => filter.page, () => filter.offset], () => {
+    fetchDoorprize(filter)
+}, { deep: true })
 </script>
 
 <template>
-    <VModalDoorprize :open="modalAddDoorprize" @close="modalAddDoorprize = false" />
+    <VModalDoorprize :open="modalAddDoorprize" @close="modalAddDoorprize = false, fetchDoorprize(filter)" />
 
     <div class="datatable-toolbar is-justify-content-space-between">
         <h3>Doorprize Winners List</h3>
@@ -116,10 +186,12 @@ onMounted(() => {
             <VButton icon="lucide:download" color="primary" outlined class="is-flex is-align-item-center">
                 Download
             </VButton>
-            <VButton icon="material-symbols:play-circle" color="primary" outlined class="is-flex is-align-item-center" @click="openSpin">
+            <VButton icon="material-symbols:play-circle" color="primary" outlined class="is-flex is-align-item-center"
+                @click="openSpin">
                 Spin All
             </VButton>
-            <VButton icon="material-symbols:add" color="primary" class="is-flex is-align-item-center" @click="openCreateDoorrize">
+            <VButton icon="material-symbols:add" color="primary" class="is-flex is-align-item-center"
+                @click="openCreateDoorrize">
                 New Doorprize
             </VButton>
         </VFlex>
@@ -132,39 +204,68 @@ onMounted(() => {
                     <tr>
                         <th>
                             <span class="is-flex is-align-items-center is-justify-content-space-between"
-                                @click="handleSort('no')">
+                                @click="handleSort('id')">
                                 <span class="is-align-items-center">No</span>
                                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
                                     xmlns="http://www.w3.org/2000/svg">
                                     <path
                                         d="M5.41504 7.34924L9.24082 2.88583C9.63991 2.42022 10.3602 2.42022 10.7593 2.88583L14.5851 7.34924C15.1411 7.99791 14.6802 9.00003 13.8259 9.00003H6.1743C5.31994 9.00003 4.85903 7.99791 5.41504 7.34924Z"
-                                        :fill="getColorUp('no')" />
+                                        :fill="getColorUp('id')" />
                                     <path
                                         d="M14.5851 12.6508L10.7593 17.1142C10.3602 17.5798 9.63991 17.5798 9.24082 17.1142L5.41504 12.6508C4.85903 12.0021 5.31994 11 6.1743 11L13.8259 11C14.6802 11 15.1411 12.0021 14.5851 12.6508Z"
-                                        :fill="getColorDown('no')" />
+                                        :fill="getColorDown('id')" />
                                 </svg>
                             </span>
                         </th>
                         <th>Image</th>
                         <th>
-                            <span class="is-flex is-align-items-center is-justify-content-space-between">
+                            <span class="is-flex is-align-items-center is-justify-content-space-between"
+                                @click="handleSort('name')">
                                 <span class="is-align-items-center">Doorprize Name</span>
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path
+                                        d="M5.41504 7.34924L9.24082 2.88583C9.63991 2.42022 10.3602 2.42022 10.7593 2.88583L14.5851 7.34924C15.1411 7.99791 14.6802 9.00003 13.8259 9.00003H6.1743C5.31994 9.00003 4.85903 7.99791 5.41504 7.34924Z"
+                                        :fill="getColorUp('name')" />
+                                    <path
+                                        d="M14.5851 12.6508L10.7593 17.1142C10.3602 17.5798 9.63991 17.5798 9.24082 17.1142L5.41504 12.6508C4.85903 12.0021 5.31994 11 6.1743 11L13.8259 11C14.6802 11 15.1411 12.0021 14.5851 12.6508Z"
+                                        :fill="getColorDown('name')" />
+                                </svg>
                             </span>
                         </th>
                         <th>
-                            <span class="is-flex is-align-items-center is-justify-content-space-between">
+                            <span class="is-flex is-align-items-center is-justify-content-space-between"
+                                @click="handleSort('id')">
                                 <span class="is-align-items-center">Spin Order</span>
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path
+                                        d="M5.41504 7.34924L9.24082 2.88583C9.63991 2.42022 10.3602 2.42022 10.7593 2.88583L14.5851 7.34924C15.1411 7.99791 14.6802 9.00003 13.8259 9.00003H6.1743C5.31994 9.00003 4.85903 7.99791 5.41504 7.34924Z"
+                                        :fill="getColorUp('id')" />
+                                    <path
+                                        d="M14.5851 12.6508L10.7593 17.1142C10.3602 17.5798 9.63991 17.5798 9.24082 17.1142L5.41504 12.6508C4.85903 12.0021 5.31994 11 6.1743 11L13.8259 11C14.6802 11 15.1411 12.0021 14.5851 12.6508Z"
+                                        :fill="getColorDown('id')" />
+                                </svg>
                             </span>
                         </th>
                         <th>
-                            <span class="is-flex is-align-items-center is-justify-content-space-between">
+                            <span class="is-flex is-align-items-center is-justify-content-space-between"
+                                @click="handleSort('total_winner')">
                                 <span class="is-align-items-center">Total Winner</span>
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
+                                    xmlns="http://www.w3.org/2000/svg">
+                                    <path
+                                        d="M5.41504 7.34924L9.24082 2.88583C9.63991 2.42022 10.3602 2.42022 10.7593 2.88583L14.5851 7.34924C15.1411 7.99791 14.6802 9.00003 13.8259 9.00003H6.1743C5.31994 9.00003 4.85903 7.99791 5.41504 7.34924Z"
+                                        :fill="getColorUp('total_winner')" />
+                                    <path
+                                        d="M14.5851 12.6508L10.7593 17.1142C10.3602 17.5798 9.63991 17.5798 9.24082 17.1142L5.41504 12.6508C4.85903 12.0021 5.31994 11 6.1743 11L13.8259 11C14.6802 11 15.1411 12.0021 14.5851 12.6508Z"
+                                        :fill="getColorDown('total_winner')" />
+                                </svg>
                             </span>
                         </th>
                         <th>
                             <span class="is-flex is-align-items-center is-justify-content-space-between">
                                 <span class="is-align-items-center">Winner Name</span>
-            
                             </span>
                         </th>
                         <th>
@@ -177,7 +278,7 @@ onMounted(() => {
                 <tbody>
                     <template v-if="doorprize.isLoading">
                         <tr>
-                            <td colspan="6" class="has-text-centered">
+                            <td colspan="7" class="has-text-centered">
                                 <VLoader :active="true" class="mh-300" />
                             </td>
                         </tr>
@@ -185,25 +286,38 @@ onMounted(() => {
                     <template v-else>
                         <template v-if="!processedData.length">
                             <tr>
-                                <td colspan="6" class="has-text-centered">
-                                    <VPlaceholderSection title="No Participants yet" subtitle="Upload dataset participants first and it will show up here.">
+                                <td colspan="7" class="has-text-centered">
+                                    <VPlaceholderSection title="No Doorprizes yet"
+                                        subtitle="Create a new doorprize and it will show up here.">
                                         <template #image>
                                             <VIcon icon="mingcute:empty-box-fill" class="empty-state" />
                                         </template>
                                         <template #action>
-                                            <VButton color="primary" @click.prevent="handleUpload">Input Participants Dataset </VButton>
+                                            <VButton color="primary" @click.prevent="openCreateDoorrize">Create New
+                                                Doorprize</VButton>
                                         </template>
                                     </VPlaceholderSection>
                                 </td>
                             </tr>
                         </template>
                         <template v-else>
-                            <tr v-for="user, index in processedData" :key="index">
-                                <!-- <td>{{ user.no }}</td>
-                                <td><img :src="user.image" alt="Doorprize" class="product-photo"></td>
-                                <td>{{ user.doorprize_name }}</td>
-                                <td>{{ user.winner }}</td>
-                                <td>{{ user.company }}</td> -->
+                            <tr v-for="(item, index) in paginatedData" :key="item.id">
+                                <td>{{ index + 1 + ((filter?.page - 1) * filter?.offset) }}</td>
+                                <td>
+                                    <img :src="item.photo" :alt="item.name" class="product-photo"
+                                        @error="$event.target.src = 'https://placehold.co/600x400'"
+                                        style="max-width: 60px; max-height: 60px; object-fit: contain;">
+                                </td>
+                                <td>{{ item.name }}</td>
+                                <td>{{ item.id }}</td>
+                                <td>{{ item.total_winner }}</td>
+                                <td>{{ getWinnerNames(item) }}</td>
+                                <td>
+                                    <div class="is-flex" @click="handleDelete(item.id)">
+                                        <VIconButton icon="material-symbols:delete" color="danger" rounded elevated
+                                            outlined title="Delete Doorprize" />
+                                    </div>
+                                </td>
                             </tr>
                         </template>
                     </template>
@@ -212,8 +326,9 @@ onMounted(() => {
         </div>
     </div>
 
-    <VFlexPagination v-if="processedData.length > 5" v-model:current-page="filter.page" :item-per-page="filter.offset"
-        :total-items="processedData.length" :max-links-displayed="7" no-router class="mt-4">
+    <VFlexPagination v-if="processedData.length > filter.offset" v-model:current-page="filter.page"
+        :item-per-page="filter.offset" :total-items="processedData.length" :max-links-displayed="7" no-router
+        class="mt-4">
         <template #before-pagination>
             <VDropdown left down class="mr-2">
                 <template #button="{ toggle, isOpen }">
@@ -238,7 +353,10 @@ onMounted(() => {
 </template>
 
 <style lang="scss" scoped>
-/* Keeping the original styles */
+.mh-300 {
+    min-height: 300px;
+}
+
 .is-navbar {
     .datatable-toolbar {
         padding-top: 30px;
@@ -330,5 +448,10 @@ onMounted(() => {
         height: 80px;
         object-fit: contain;
     }
+}
+
+.empty-state {
+    font-size: 94px;
+    color: #4B93AD;
 }
 </style>

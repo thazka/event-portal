@@ -40,12 +40,12 @@ export const storeLayoutEvent = async (params: any) => {
     }
 }
 
-export const fetchLayoutEvent = async () => {
+export const fetchLayoutEvent = async (event_id: number) => {
     try {
         seatLayout.isLoading = true
         seatLayout.isError = false
 
-        const { data } = await api.get('/v1/layout')
+        const { data } = await api.get(`/v1/layout?event_id=${event_id}`)
 
         if (!data.status) {
             seatLayout.isLoading = false

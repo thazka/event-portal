@@ -43,3 +43,13 @@ export const storeDoorprize = async (params: any) => {
         return error
     }
 }
+
+export const deleteDoorprize = async (id: number) => {
+    try {
+        const { data } = await api.delete(`/v1/doorprize/${id}`)
+        
+        return data
+    } catch (error) {
+        return error
+    }
+}

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { fetchEventAnalytics, fetchLayoutEvent } from '/@src/composables/event/useAnalytics'
-import { fetchEventParticipants, updateParticipant } from '/@src/composables/event/useParticipants'
+import { downloadParticipant, fetchEventParticipants, updateParticipant, updateSeatParticipant } from '/@src/composables/event/useParticipants'
 import { useRadialBar } from '/@src/data/radialBarChart'
 import { eventOptions, itemsPerPageOptions } from '/@src/data/options'
 import type { Participants } from '/@src/interface/ParticipantsInterface'
@@ -54,31 +54,44 @@ const handleSearch = () => {
 }
 
 // Handle seat selection
-const handleSelectSeat = (userId: number, seat: any) => {
-    const seatAlreadyAssigned = participants.data.some((participant: any) =>
-        participant.seat &&
-        participant.seat.id == seat &&
-        participant.id != userId
+const handleSelectSeat = async (userId: number, seatId: number) => {
+    // Find the selected seat from seatList
+    const selectedSeat = seatList.data.find(seat => seat.id === seatId)
+
+    if (!selectedSeat) {
+        notyf.error('Seat not found')
+        return
+    }
+
+    // Check if the seat is already assigned to another participant
+    const seatAlreadyAssigned = participants.data.some(participant =>
+        participant.event?.seat_id === seatId &&
+        participant.id !== userId
     )
 
     if (seatAlreadyAssigned) {
-        notyf.error('This seat is already assigned to another participant');
-        return;
+        notyf.error('This seat is already assigned to another participant')
+        return
     }
 
-    updateParticipant(userId, { seat_id: seat.id }).then(() => {
-        // fetchEventParticipants(filter)
-        participants.data.find((participant: any) => {
-            if (participant.id == userId) {
-                participant.seat.id = seat.id;
-                participant.seat.name = seat.name;
-            }
-        });
-    })
+    try {
+        await updateSeatParticipant(filter.event_id, userId, seatId)
+
+        const participant = participants.data.find(p => p.id === userId)
+        if (participant) {
+            participant.event.seat_id = seatId
+        }
+
+        notyf.success('Seat assigned successfully')
+    } catch (error) {
+        console.error('Failed to update seat:', error)
+        notyf.error('Failed to assign seat. Please try again.')
+    }
 }
 
+
 const handleSeat = () => {
-    fetchLayoutEvent().then(() => {
+    fetchLayoutEvent(filter.event_id).then(() => {
         modalSeat.value = false
     })
 }
@@ -87,6 +100,20 @@ const titleEvent = computed(() => {
     const event = eventOptions.find(option => option.value == filter.event_id)
     return event ? event.label : ''
 })
+
+const selectEvent = (data: any) => {
+    filter.event_id = data
+
+    Promise.all([
+        fetchEventParticipants(filter),
+        fetchEventAnalytics(filter.event_id),
+        fetchLayoutEvent(filter.event_id)
+    ])
+}
+
+const handleDownload = () => {
+    downloadParticipant()
+}
 
 onMounted(() => {
     pageTitle.value = 'Dashboard Analytics'
@@ -113,7 +140,7 @@ useHead({
             <div class="is-flex ml-auto is-align-items-center">
                 <span class="mr-2" style="min-width: 100px;">Select Event : </span>
                 <Multiselect v-model="filter.event_id" :options="eventOptions" placeholder="Select Event" label="label"
-                    track-by="value" style="min-width: 220px;" />
+                    track-by="value" style="min-width: 220px;" @select="selectEvent" />
             </div>
         </div>
         <div class="columns has-fullheight main-container">
@@ -198,7 +225,7 @@ useHead({
                         </VControl>
                     </VField>
                     <VButtons>
-                        <VButton color="primary" icon="lucide:download" outlined>
+                        <VButton color="primary" icon="lucide:download" outlined @click="handleDownload">
                             Download
                         </VButton>
                     </VButtons>
@@ -206,9 +233,10 @@ useHead({
             </div>
 
             <VTableList :data="participants.data" :loading="participants.isLoading" :filter="filter"
-                :sort-column="sortColumn" :sort-direction="sortDirection" :seat-list="seatList.data" @update:filter="filter = $event"
-                @update:sort-column="sortColumn = $event" @update:sort-direction="sortDirection = $event"
-                @select-seat="handleSelectSeat" @upload="modalDataset = true" />
+                :sort-column="sortColumn" :sort-direction="sortDirection" :seat-list="seatList.data"
+                @update:filter="filter = $event" @update:sort-column="sortColumn = $event"
+                @update:sort-direction="sortDirection = $event" @select-seat="handleSelectSeat"
+                @upload="modalDataset = true" />
 
             <VFlexPagination v-if="participants.data?.length" v-model:current-page="filter.page"
                 :item-per-page="filter.offset" :total-items="participants.pagination?.total" :max-links-displayed="7"
@@ -236,7 +264,7 @@ useHead({
             </VFlexPagination>
         </div>
 
-        <VModalInputSeatLayout :open="modalSeat" @close="modalSeat = false" @upload="handleSeat" />
+        <VModalInputSeatLayout :open="modalSeat" :event-id="filter.event_id" @close="modalSeat = false" @upload="handleSeat" />
         <VModalInputDataset :open="modalDataset" @close="modalDataset = false" />
 
     </div>

@@ -1,7 +1,7 @@
 import { acceptHMRUpdate, defineStore } from 'pinia'
 
 export const useParticipants = defineStore('participants', () => {
-    const participants = reactive({
+    const participants = reactive<any>({
         data: [],
         isLoading: true,
         isError: false,

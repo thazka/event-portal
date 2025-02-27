@@ -5,8 +5,10 @@ import { storeLayoutEvent, fetchLayoutEvent } from '/@src/composables/event/useA
 
 const props = withDefaults(defineProps<{
     open?: boolean,
+    eventId?: number
 }>(), {
     open: false,
+    eventId: 1
 })
 
 const emit = defineEmits(['close', 'upload'])
@@ -127,6 +129,7 @@ const startUpload = async () => {
     try {
         const formData = new FormData()
         formData.append('file', selectedFile.value)
+        formData.append('event_id', props.eventId.toString())
 
         const response = await storeLayoutEvent(formData)
 
