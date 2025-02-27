@@ -17,7 +17,7 @@ export type VTagColor =
 export type VTagSize = 'tiny'
 
 export interface VTagProps {
-  id: string
+  id?: string
   label?: string | number
   color?: VTagColor
   size?: VTagSize
@@ -34,6 +34,7 @@ export interface VTagProps {
 }
 
 const props = withDefaults(defineProps<VTagProps>(), {
+  id: '',
   label: undefined,
   color: undefined,
   size: undefined,

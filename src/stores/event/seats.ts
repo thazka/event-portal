@@ -2,9 +2,15 @@ import { acceptHMRUpdate, defineStore } from 'pinia'
 
 export const useSeats = defineStore('seats', () => {
     const seatList = reactive({
-        data: [],
         isLoading: true,
         isError: false,
+        data: [],
+        pagination: {
+            total: 0,
+            offset: 10,
+            current: 1,
+            last: 1,
+        }
     })
 
     return {

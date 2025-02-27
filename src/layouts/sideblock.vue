@@ -26,6 +26,12 @@ const links = ref<SideblockItem[]>([
     label: 'Doorprize',
     icon: 'material-symbols:attractions',
     to: '/app/doorprize',
+  },
+  {
+    type: 'link',
+    label: 'Seat Management',
+    icon: 'material-symbols:chair',
+    to: '/app/seating',
   }
 ])
 

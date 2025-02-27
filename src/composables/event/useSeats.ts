@@ -20,6 +20,7 @@ export const fetchSeatList = async (params: any) => {
         }
 
         seatList.data = data.data
+        seatList.pagination = data.pagination
         seatList.isLoading = false
         seatList.isError = false
         
@@ -30,4 +31,34 @@ export const fetchSeatList = async (params: any) => {
 
         return error
     }
-}  
+}
+
+export const storeSeat = async (params: any) => {
+    try {
+        const { data } = await api.post('/v1/seat', params)
+
+        return data
+    } catch (error) {
+        return error
+    }
+}
+
+export const updateSeat = async (id: number, params: any) => {
+    try {
+        const { data } = await api.put(`/v1/seat/${id}`, params)
+
+        return data
+    } catch (error) {
+        return error
+    }
+}
+
+export const deleteSeat = async (id: number) => {
+    try {
+        const { data } = await api.delete(`/v1/seat/${id}`)
+
+        return data
+    } catch (error) {
+        return error
+    }
+}
