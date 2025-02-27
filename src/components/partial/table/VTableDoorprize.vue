@@ -1,35 +1,20 @@
 <script setup lang="ts">
-export interface UserData {
-    no: number
-    image: string
-    doorprize_name: string
-    winner: string
-    company: string
-}
-
-interface Props {
-    data: UserData[]
-}
-
-const props = defineProps<Props>()
-
-const itemsPerPageOptions = [
-    { value: 10, label: '10' },
-    { value: 20, label: '20' },
-    { value: 50, label: '50' },
-    { value: 100, label: '100' }
-]
+import { fetchDoorprize } from '/@src/composables/event/useDoorprize'
+import { itemsPerPageOptions } from '/@src/data/options'
+import { useDoorprize } from '/@src/stores/event/doorprize'
 
 const filter = reactive({
     search: '',
     page: 1,
-    limit: 10
+    offset: 10
 })
+
+const router = useRouter()
+const { doorprize } = useDoorprize()
 
 const sortColumn = ref<keyof UserData | null>(null)
 const sortDirection = ref<'asc' | 'desc' | null>(null)
 const modalAddDoorprize = ref(false)
-const router = useRouter()
 
 const handleSort = (column: keyof UserData) => {
     if (sortColumn.value === column) {
@@ -63,7 +48,7 @@ const getColorDown = (column: keyof UserData) => {
 }
 
 const processedData = computed(() => {
-    let result = [...props.data]
+    let result = [...doorprize.data]
 
     if (filter.search) {
         const filterRe = new RegExp(filter.search, 'i')
@@ -100,7 +85,7 @@ const processedData = computed(() => {
 
 const handleLimit = (limit: number) => {
     filter.page = 1
-    filter.limit = limit
+    filter.offset = limit
 }
 
 const openCreateDoorrize = () => {
@@ -110,6 +95,10 @@ const openCreateDoorrize = () => {
 const openSpin = () => {
     router.push('/app/luckydraw')
 }
+
+onMounted(() => {
+    fetchDoorprize(filter)
+})
 </script>
 
 <template>
@@ -158,75 +147,78 @@ const openSpin = () => {
                         </th>
                         <th>Image</th>
                         <th>
-                            <span class="is-flex is-align-items-center is-justify-content-space-between"
-                                @click="handleSort('doorprize_name')">
+                            <span class="is-flex is-align-items-center is-justify-content-space-between">
                                 <span class="is-align-items-center">Doorprize Name</span>
-                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
-                                    xmlns="http://www.w3.org/2000/svg">
-                                    <path
-                                        d="M5.41504 7.34924L9.24082 2.88583C9.63991 2.42022 10.3602 2.42022 10.7593 2.88583L14.5851 7.34924C15.1411 7.99791 14.6802 9.00003 13.8259 9.00003H6.1743C5.31994 9.00003 4.85903 7.99791 5.41504 7.34924Z"
-                                        :fill="getColorUp('doorprize_name')" />
-                                    <path
-                                        d="M14.5851 12.6508L10.7593 17.1142C10.3602 17.5798 9.63991 17.5798 9.24082 17.1142L5.41504 12.6508C4.85903 12.0021 5.31994 11 6.1743 11L13.8259 11C14.6802 11 15.1411 12.0021 14.5851 12.6508Z"
-                                        :fill="getColorDown('doorprize_name')" />
-                                </svg>
                             </span>
                         </th>
                         <th>
-                            <span class="is-flex is-align-items-center is-justify-content-space-between"
-                                @click="handleSort('winner')">
-                                <span class="is-align-items-center">Winner</span>
-                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
-                                    xmlns="http://www.w3.org/2000/svg">
-                                    <path
-                                        d="M5.41504 7.34924L9.24082 2.88583C9.63991 2.42022 10.3602 2.42022 10.7593 2.88583L14.5851 7.34924C15.1411 7.99791 14.6802 9.00003 13.8259 9.00003H6.1743C5.31994 9.00003 4.85903 7.99791 5.41504 7.34924Z"
-                                        :fill="getColorUp('winner')" />
-                                    <path
-                                        d="M14.5851 12.6508L10.7593 17.1142C10.3602 17.5798 9.63991 17.5798 9.24082 17.1142L5.41504 12.6508C4.85903 12.0021 5.31994 11 6.1743 11L13.8259 11C14.6802 11 15.1411 12.0021 14.5851 12.6508Z"
-                                        :fill="getColorDown('winner')" />
-                                </svg>
+                            <span class="is-flex is-align-items-center is-justify-content-space-between">
+                                <span class="is-align-items-center">Spin Order</span>
                             </span>
                         </th>
                         <th>
-                            <span class="is-flex is-align-items-center is-justify-content-space-between"
-                                @click="handleSort('company')">
-                                <span class="is-align-items-center">Company</span>
-                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
-                                    xmlns="http://www.w3.org/2000/svg">
-                                    <path
-                                        d="M5.41504 7.34924L9.24082 2.88583C9.63991 2.42022 10.3602 2.42022 10.7593 2.88583L14.5851 7.34924C15.1411 7.99791 14.6802 9.00003 13.8259 9.00003H6.1743C5.31994 9.00003 4.85903 7.99791 5.41504 7.34924Z"
-                                        :fill="getColorUp('company')" />
-                                    <path
-                                        d="M14.5851 12.6508L10.7593 17.1142C10.3602 17.5798 9.63991 17.5798 9.24082 17.1142L5.41504 12.6508C4.85903 12.0021 5.31994 11 6.1743 11L13.8259 11C14.6802 11 15.1411 12.0021 14.5851 12.6508Z"
-                                        :fill="getColorDown('company')" />
-                                </svg>
+                            <span class="is-flex is-align-items-center is-justify-content-space-between">
+                                <span class="is-align-items-center">Total Winner</span>
+                            </span>
+                        </th>
+                        <th>
+                            <span class="is-flex is-align-items-center is-justify-content-space-between">
+                                <span class="is-align-items-center">Winner Name</span>
+            
+                            </span>
+                        </th>
+                        <th>
+                            <span class="is-flex is-align-items-center is-justify-content-space-between">
+                                <span class="is-align-items-center">Action</span>
                             </span>
                         </th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="user in processedData" :key="user.no">
-                        <td>{{ user.no }}</td>
-                        <td><img :src="user.image" alt="Doorprize" class="product-photo"></td>
-                        <td>{{ user.doorprize_name }}</td>
-                        <td>{{ user.winner }}</td>
-                        <td>{{ user.company }}</td>
-                    </tr>
+                    <template v-if="doorprize.isLoading">
+                        <tr>
+                            <td colspan="6" class="has-text-centered">
+                                <VLoader :active="true" class="mh-300" />
+                            </td>
+                        </tr>
+                    </template>
+                    <template v-else>
+                        <template v-if="!processedData.length">
+                            <tr>
+                                <td colspan="6" class="has-text-centered">
+                                    <VPlaceholderSection title="No Participants yet" subtitle="Upload dataset participants first and it will show up here.">
+                                        <template #image>
+                                            <VIcon icon="mingcute:empty-box-fill" class="empty-state" />
+                                        </template>
+                                        <template #action>
+                                            <VButton color="primary" @click.prevent="handleUpload">Input Participants Dataset </VButton>
+                                        </template>
+                                    </VPlaceholderSection>
+                                </td>
+                            </tr>
+                        </template>
+                        <template v-else>
+                            <tr v-for="user, index in processedData" :key="index">
+                                <!-- <td>{{ user.no }}</td>
+                                <td><img :src="user.image" alt="Doorprize" class="product-photo"></td>
+                                <td>{{ user.doorprize_name }}</td>
+                                <td>{{ user.winner }}</td>
+                                <td>{{ user.company }}</td> -->
+                            </tr>
+                        </template>
+                    </template>
                 </tbody>
             </table>
         </div>
-        <VPlaceholderPage v-if="processedData.length === 0" title="We couldn't find any matching results."
-            subtitle="Too bad. Looks like we couldn't find any matching results for the search terms you've entered. Please try different search terms or criteria."
-            larger />
     </div>
 
-    <VFlexPagination v-if="processedData.length > 5" v-model:current-page="filter.page" :item-per-page="filter.limit"
+    <VFlexPagination v-if="processedData.length > 5" v-model:current-page="filter.page" :item-per-page="filter.offset"
         :total-items="processedData.length" :max-links-displayed="7" no-router class="mt-4">
         <template #before-pagination>
             <VDropdown left down class="mr-2">
                 <template #button="{ toggle, isOpen }">
                     <VButton @click="toggle">
-                        {{ filter.limit }}
+                        {{ filter.offset }}
                         <span class="ml-2">
                             <i v-if="isOpen" class="lnir lnir-chevron-up" />
                             <i v-else class="lnir lnir-chevron-down" />

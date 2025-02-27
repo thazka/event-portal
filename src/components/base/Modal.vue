@@ -68,9 +68,9 @@ onUnmounted(() => {
     v-if="open"
     to="body"
   >
-    <FocusTrap
+    <!-- <FocusTrap
       :initial-focus="() => ($refs.closeButton as any)?.el"
-    >
+    > -->
       <component
         :is="is"
         role="dialog"
@@ -142,7 +142,7 @@ onUnmounted(() => {
           </div>
         </div>
       </component>
-    </FocusTrap>
+    <!-- </FocusTrap> -->
   </Teleport>
 </template>
 

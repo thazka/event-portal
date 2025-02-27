@@ -4,3 +4,9 @@ export const itemsPerPageOptions = [
     { value: 50, label: '50' },
     { value: 100, label: '100' }
 ]
+
+export const eventOptions = [
+    { label: 'Morning Ballroom', value: 1 },
+    { label: 'Morning Meeting Room', value: 2 },
+    { label: 'Evening Gala Dinner', value: 3 },
+]

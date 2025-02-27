@@ -2,7 +2,7 @@
 import { fetchEventAnalytics, fetchLayoutEvent } from '/@src/composables/event/useAnalytics'
 import { fetchEventParticipants, updateParticipant } from '/@src/composables/event/useParticipants'
 import { useRadialBar } from '/@src/data/radialBarChart'
-import { itemsPerPageOptions } from '/@src/data/options'
+import { eventOptions, itemsPerPageOptions } from '/@src/data/options'
 import type { Participants } from '/@src/interface/ParticipantsInterface'
 import { useAnalytics } from '/@src/stores/event/analytics'
 import { useParticipants } from '/@src/stores/event/participants'
@@ -12,7 +12,8 @@ import { useSeats } from '/@src/stores/event/seats'
 const filter = reactive({
     search: '',
     page: 1,
-    offset: 10
+    offset: 10,
+    event_id: 1
 })
 
 const radialBar = useRadialBar()
@@ -54,17 +55,17 @@ const handleSearch = () => {
 
 // Handle seat selection
 const handleSelectSeat = (userId: number, seat: any) => {
-    const seatAlreadyAssigned = participants.data.some((participant: any) => 
-        participant.seat && 
-        participant.seat.id == seat && 
+    const seatAlreadyAssigned = participants.data.some((participant: any) =>
+        participant.seat &&
+        participant.seat.id == seat &&
         participant.id != userId
-    );
-    
+    )
+
     if (seatAlreadyAssigned) {
         notyf.error('This seat is already assigned to another participant');
         return;
     }
-    
+
     updateParticipant(userId, { seat_id: seat.id }).then(() => {
         // fetchEventParticipants(filter)
         participants.data.find((participant: any) => {
@@ -82,12 +83,17 @@ const handleSeat = () => {
     })
 }
 
+const titleEvent = computed(() => {
+    const event = eventOptions.find(option => option.value == filter.event_id)
+    return event ? event.label : ''
+})
+
 onMounted(() => {
     pageTitle.value = 'Dashboard Analytics'
 
     Promise.all([
         fetchEventParticipants(filter),
-        fetchEventAnalytics(),
+        fetchEventAnalytics(filter.event_id),
         fetchSeatList({
             offset: 99
         })
@@ -101,6 +107,15 @@ useHead({
 
 <template>
     <div>
+        <div class="toolbar-event has-fullwidth is-flex is-align-items-center">
+            <h3>{{ titleEvent }}</h3>
+
+            <div class="is-flex ml-auto is-align-items-center">
+                <span class="mr-2" style="min-width: 100px;">Select Event : </span>
+                <Multiselect v-model="filter.event_id" :options="eventOptions" placeholder="Select Event" label="label"
+                    track-by="value" style="min-width: 220px;" />
+            </div>
+        </div>
         <div class="columns has-fullheight main-container">
             <div class="column is-half column-wrapper">
                 <VCardAdvanced nofooter class="seat-layout-card">
@@ -228,6 +243,16 @@ useHead({
 </template>
 
 <style lang="scss" scoped>
+.toolbar-event {
+    margin-bottom: 10px;
+
+    h3 {
+        font-weight: 600;
+        font-size: 18.2px;
+        line-height: 27.3px;
+    }
+}
+
 .seat-layout-card {
     position: relative;
     display: flex;

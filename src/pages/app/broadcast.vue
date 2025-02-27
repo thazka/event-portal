@@ -23,6 +23,7 @@ const selectedRows = ref<number[]>([])
 const sortColumn = ref<keyof UserData | null>(null)
 const sortDirection = ref<'asc' | 'desc' | null>(null)
 const modalBroadcast = ref(false)
+const modalDatePicker = ref(false)
 
 const handleLimit = (limit: number) => {
     filter.page = 1
@@ -45,6 +46,14 @@ const changePage = (page: number) => {
 
 const openModalBroadcast = () => {
     modalBroadcast.value = true
+}
+
+const openModalSchedule = () => {
+    modalBroadcast.value = false
+    
+    modalDatePicker.value = true
+    // setTimeout(() => {
+    // }, 100)
 }
 
 onMounted(() => {
@@ -88,7 +97,8 @@ const activeTab = (tab: string) => {
                     </VButtons>
                 </VFlex>
 
-                <VModalBroadcast :open="modalBroadcast" @close="modalBroadcast = false" />
+                <VModalBroadcast :open="modalBroadcast" @open-schedule="openModalSchedule" @close="modalBroadcast = false" />
+                <VModalDatePicker :open="modalDatePicker" />
             </div>
 
             <!-- Table component -->

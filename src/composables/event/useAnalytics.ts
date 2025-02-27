@@ -4,12 +4,12 @@ import { useAnalytics } from "/@src/stores/event/analytics";
 const api = useApi()
 const { analytics, seatLayout } = useAnalytics()
 
-export const fetchEventAnalytics = async () => {
+export const fetchEventAnalytics = async (id: number) => {
     try {
         analytics.isLoading = true
         analytics.isError = false
 
-        const { data } = await api.get('/v1/dashboard')
+        const { data } = await api.get(`/v1/dashboard?event_id=${id}`)
 
         if (!data.status) {
             throw new Error("Failed to fetch event analytics");

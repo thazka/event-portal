@@ -11,6 +11,7 @@ interface Props {
         search: string
         page: number
         offset: number
+        event_id: number
     }
     loading: boolean
     sortColumn: keyof Participants | null
@@ -254,7 +255,7 @@ const handleUpload = () => {
                                 <td>{{ user.company }}</td>
                                 <td>{{ user.phone }}</td>
                                 <td>
-                                    <VTag 
+                                    <!-- <VTag 
                                         :id="`option-${index}`"
                                         :label="user.seat.name || 'Seat Unassigned'" 
                                         :color="!user.seat.name ? 'danger' : 'success'"
@@ -264,7 +265,7 @@ const handleUpload = () => {
                                         :disabledOptions="assignedSeats"
                                         :currentUserId="user.id"
                                         searchPlaceholder="Search" 
-                                        @select="(seat: any) => handleSelectSeat(user.id, seat)" />
+                                        @select="(seat: any) => handleSelectSeat(user.id, seat)" /> -->
                                 </td>
                                 <td class="has-text-left">
                                     {{ user.attendance != null ? moment(user.attendance, 'YYYY-MM-DD HH:mm:ss').format('DD-MM-YYYY HH:mm') : '' }}

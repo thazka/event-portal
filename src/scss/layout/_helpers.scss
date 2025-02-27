@@ -91,6 +91,10 @@ $sides: top, bottom, left, right;
   height: auto;
 }
 
+.has-borderless {
+  border: none;
+}
+
 .no-scroll {
   overflow: hidden !important;
 }

@@ -3,7 +3,7 @@ const props = withDefaults(defineProps(), {
     open: false
 })
 
-const emit = defineEmits(['close', 'upload'])
+const emit = defineEmits(['close', 'upload', 'open-schedule'])
 const notyf = useNotyf()
 
 const form = reactive({
@@ -17,14 +17,17 @@ const isDisabled = computed(() => {
     return !form.title && !form.message
 })
 
+const openModalSchedule = () => {
+    emit('open-schedule')
+}
+
 const closeModal = () => {
     emit('close')
 }
-
 </script>
 
 <template>
-    <VModal :open="props.open" title="Write a message here to send to selected participants" class="modal-broadcast"
+    <Modal id="modal-broadcast" :open="props.open" title="Write a message here to send to selected participants" class="modal-broadcast"
         size="medium" actions="between" middletitle noborder @close="closeModal">
         <template #content>
             <VField label="Broadcast Title">
@@ -43,7 +46,7 @@ const closeModal = () => {
         </template>
         <template #action>
             <VButtons>
-                <VButton color="primary" raised outlined :loading="loadingForm" :disabled="isDisabled">
+                <VButton color="primary" raised outlined :loading="loadingForm" :disabled="isDisabled" @click="openModalSchedule">
                     Schedule
                 </VButton>
                 <VButton color="primary" raised :loading="loadingForm" :disabled="isDisabled">
@@ -51,7 +54,7 @@ const closeModal = () => {
                 </VButton>
             </VButtons>
         </template>
-    </VModal>
+    </Modal>
 </template>
 
 <style lang="scss"scoped>

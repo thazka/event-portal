@@ -60,7 +60,8 @@ export default defineConfig({
       'v-calendar',
       '@vueform/multiselect',
       'vue-i18n',
-      '@vueform/slider'
+      '@vueform/slider',
+      'focus-trap-vue',
     ],
   },
   build: {

@@ -21,6 +21,7 @@
     "@fontsource-variable/fira-code": "5.0.18",
     "@fontsource-variable/montserrat": "5.0.19",
     "@fontsource-variable/roboto-flex": "5.0.15",
+    "@popperjs/core": "^2.11.8",
     "@unhead/addons": "1.9.9",
     "@unhead/ssr": "1.9.9",
     "@unhead/vue": "1.9.9",
