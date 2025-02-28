@@ -27,7 +27,7 @@ export interface TagOption {
 export interface VTagProps {
   id?: string
   label?: string | number
-  color?: VTagColor
+  color?: VTagColor | string
   size?: VTagSize
   rounded?: boolean
   curved?: boolean
@@ -220,6 +220,51 @@ watch(activeTag, (newVal) => {
       padding-inline-end: 0.55em;
       line-height: 1.3;
       height: 1.6em;
+    }
+  }
+
+  &.is-inprogress {
+    background: #039BE5;
+    color: var(--white);
+
+    &.is-elevated {
+      box-shadow: 0 4px 8px rgba(3, 155, 229, 0.3);
+    }
+
+    &.is-outlined {
+      background: none !important;
+      color: #039BE5;
+      border: 1px solid #039BE5;
+    }
+  }
+
+  &.is-scheduled {
+    background: #FAAD42;
+    color: var(--white);
+
+    &.is-elevated {
+      box-shadow: 0 4px 8px rgba(250, 173, 66, 0.3);
+    }
+
+    &.is-outlined {
+      background: none !important;
+      color: #FAAD42;
+      border: 1px solid #FAAD42;
+    }
+  }
+
+  &.is-completed {
+    background: #06D6A0;
+    color: var(--white);
+
+    &.is-elevated {
+      box-shadow: 0 4px 8px rgba(6, 214, 160, 0.3);
+    }
+
+    &.is-outlined {
+      background: none !important;
+      color: #06D6A0;
+      border: 1px solid #06D6A0;
     }
   }
 

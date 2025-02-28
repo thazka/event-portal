@@ -20,10 +20,10 @@ const filter = reactive({
 const selectedRows = ref<number[]>([])
 const { broadcastList } = useBroadcast()
 
-const sortColumn = ref<keyof UserData | null>(null)
+const sortColumn = ref<any>(null)
 const sortDirection = ref<'asc' | 'desc' | null>(null)
 
-const handleSort = (column: keyof UserData) => {
+const handleSort = (column: any) => {
     if (sortColumn.value === column) {
         if (sortDirection.value === 'asc') {
             sortDirection.value = 'desc'
@@ -40,14 +40,14 @@ const handleSort = (column: keyof UserData) => {
     }
 }
 
-const getColorUp = (column: keyof UserData) => {
+const getColorUp = (column: any) => {
     if (sortColumn.value === column && sortDirection.value === 'asc') {
         return '#1B1B1B'
     }
     return '#D9D9D9'
 }
 
-const getColorDown = (column: keyof UserData) => {
+const getColorDown = (column: any) => {
     if (sortColumn.value === column && sortDirection.value === 'desc') {
         return '#1B1B1B'
     }
@@ -93,6 +93,19 @@ const handleSearch = () => {
     fetchBroadcasts(filter)
 }
 
+const getStatusClass = (status: string) => {
+    switch (status.toLowerCase()) {
+        case 'in progress':
+            return 'inprogress'  // Maps to is-inprogress
+        case 'scheduled':
+            return 'scheduled'   // Maps to is-scheduled
+        case 'completed':
+            return 'completed'   // Maps to is-completed
+        default:
+            return 'light'       // Use light as fallback
+    }
+}
+
 onMounted(() => {
     fetchBroadcasts(filter)
 })
@@ -105,14 +118,10 @@ onMounted(() => {
         <VFlex column-gap="10px">
             <VField>
                 <VControl icon="lucide:search">
-                    <input v-model="filter.search" class="input custom-text-filter" placeholder="Search..." @keyup.enter="handleSearch">
+                    <input v-model="filter.search" class="input custom-text-filter" placeholder="Search..."
+                        @keyup.enter="handleSearch">
                 </VControl>
             </VField>
-            <VButtons>
-                <VButton color="primary" icon="ic:baseline-whatsapp">
-                    New Broadcast Message
-                </VButton>
-            </VButtons>
         </VFlex>
     </div>
 
@@ -225,7 +234,8 @@ onMounted(() => {
                         <template v-if="!processedData.length">
                             <tr>
                                 <td colspan="6" class="has-text-centered">
-                                    <VPlaceholderSection title="No Broadcast yet" subtitle="Upload dataset participants first and it will show up here.">
+                                    <VPlaceholderSection title="No Broadcast yet"
+                                        subtitle="Upload dataset participants first and it will show up here.">
                                         <template #image>
                                             <VIcon icon="formkit:people" class="empty-state" />
                                         </template>
@@ -237,10 +247,15 @@ onMounted(() => {
                             <tr v-for="(user, index) in processedData" :key="user.no">
                                 <td>{{ index + 1 + ((filter?.page - 1) * filter?.offset) }}</td>
                                 <td>{{ user.title }}</td>
-                                <td>{{ user.total }}</td>
-                                <td>{{ user.status }}</td>
+                                <td>{{ user.participants_count }}</td>
+                                <td>
+                                    <VTag :color="getStatusClass(user.status)" rounded>
+                                        {{ user.status }}
+                                    </VTag>
+                                </td>
                                 <td>{{ user.created_at != null ? moment(user.created_at, 'YYYY-MM-DD HH:mm:ss').format('DD-MM-YYYY HH:mm') : '' }}</td>
-                                <td class="has-text-left">{{ user.updated_at != null ? moment(user.updated_at, 'YYYY-MM-DD HH:mm:ss').format('DD-MM-YYYY HH:mm') : '' }}</td>
+                                <td class="has-text-left">{{ user.updated_at != null ? moment(user.updated_at,
+                                    'YYYY-MM-DD HH:mm:ss').format('DD-MM-YYYY HH:mm') : '' }}</td>
                             </tr>
                         </template>
                     </template>

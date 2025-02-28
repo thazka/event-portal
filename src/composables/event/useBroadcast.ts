@@ -31,3 +31,13 @@ export const fetchBroadcasts = async (params: any) => {
         return error
     }
 }
+
+export const storeBroadcast = async (params: any) => {
+    try {
+        const { data } = await api.post(`/v1/broadcast`, params)
+
+        return data
+    } catch (error) {
+        return error
+    }
+}

@@ -4,7 +4,7 @@ import { useParticipants } from '/@src/stores/event/participants'
 import { itemsPerPageOptions } from '/@src/data/options'
 
 export interface UserData {
-    no: number
+    id?: number
     name: string
     phone: string
 }
@@ -24,6 +24,24 @@ const sortColumn = ref<keyof UserData | null>(null)
 const sortDirection = ref<'asc' | 'desc' | null>(null)
 const modalBroadcast = ref(false)
 const modalDatePicker = ref(false)
+
+// Computed property to get the selected participants from data
+const selectedParticipants = computed(() => {
+    return participants.data.filter((participant: any) =>
+        selectedRows.value.includes(participant.id)
+    )
+})
+
+// Check if all participants are selected
+const isAllSelected = computed(() => {
+    return participants.data.length > 0 &&
+        selectedRows.value.length === participants.data.length
+})
+
+// Computed property to check if any participants are selected
+const hasSelectedParticipants = computed(() => {
+    return selectedRows.value.length > 0
+})
 
 const handleLimit = (limit: number) => {
     filter.page = 1
@@ -45,15 +63,20 @@ const changePage = (page: number) => {
 }
 
 const openModalBroadcast = () => {
-    modalBroadcast.value = true
+    // Only open modal if participants are selected
+    if (hasSelectedParticipants.value) {
+        modalBroadcast.value = true
+    }
 }
 
 const openModalSchedule = () => {
     modalBroadcast.value = false
-
     modalDatePicker.value = true
-    // setTimeout(() => {
-    // }, 100)
+}
+
+// Handle updating selectedRows from child component
+const updateSelectedRows = (rows: number[]) => {
+    selectedRows.value = rows
 }
 
 onMounted(() => {
@@ -78,7 +101,7 @@ const activeTab = (tab: string) => {
 <template>
     <div>
         <VTabs slider type="rounded" :selected="selectedTab" :tabs="tabs" @update:selected="activeTab" />
-        
+
         <template v-if="selectedTab === 'broadcast'">
             <!-- Toolbar moved to parent -->
             <div class="datatable-toolbar is-justify-content-space-between">
@@ -92,20 +115,22 @@ const activeTab = (tab: string) => {
                         </VControl>
                     </VField>
                     <VButtons>
-                        <VButton color="primary" icon="ic:baseline-whatsapp" @click="openModalBroadcast">
+                        <VButton color="primary" icon="ic:baseline-whatsapp" :disabled="!hasSelectedParticipants"
+                            @click="openModalBroadcast">
                             New Broadcast Message
                         </VButton>
                     </VButtons>
                 </VFlex>
 
-                <VModalBroadcast :open="modalBroadcast" @open-schedule="openModalSchedule" @close="modalBroadcast = false" />
+                <VModalBroadcast :open="modalBroadcast" :selectedParticipants="selectedParticipants"
+                    :isAllSelected="isAllSelected" @open-schedule="openModalSchedule" @close="modalBroadcast = false" />
                 <VModalDatePicker :open="modalDatePicker" />
             </div>
 
-            <!-- Table component -->
+            <!-- Table component with two-way binding for selectedRows -->
             <VTableCheckbox :data="participants.data" :filter="filter" :loading="participants.isLoading"
                 :selectedRows="selectedRows" :sortColumn="sortColumn" :sortDirection="sortDirection"
-                @broadcast="openModalBroadcast" />
+                @update:selectedRows="updateSelectedRows" @broadcast="openModalBroadcast" />
 
             <!-- Pagination moved to parent -->
             <VFlexPagination v-if="participants.data.length" v-model:current-page="filter.page"

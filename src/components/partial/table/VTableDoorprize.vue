@@ -233,7 +233,7 @@ watch([() => filter.search, () => filter.page, () => filter.offset], () => {
                                 </svg>
                             </span>
                         </th>
-                        <th>
+                        <!-- <th>
                             <span class="is-flex is-align-items-center is-justify-content-space-between"
                                 @click="handleSort('id')">
                                 <span class="is-align-items-center">Spin Order</span>
@@ -247,7 +247,7 @@ watch([() => filter.search, () => filter.page, () => filter.offset], () => {
                                         :fill="getColorDown('id')" />
                                 </svg>
                             </span>
-                        </th>
+                        </th> -->
                         <th>
                             <span class="is-flex is-align-items-center is-justify-content-space-between"
                                 @click="handleSort('total_winner')">
@@ -309,7 +309,7 @@ watch([() => filter.search, () => filter.page, () => filter.offset], () => {
                                         style="max-width: 60px; max-height: 60px; object-fit: contain;">
                                 </td>
                                 <td>{{ item.name }}</td>
-                                <td>{{ item.id }}</td>
+                                <!-- <td>{{ item.id }}</td> -->
                                 <td>{{ item.total_winner }}</td>
                                 <td>{{ getWinnerNames(item) }}</td>
                                 <td>

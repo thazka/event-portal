@@ -1,6 +1,6 @@
 <script setup lang="ts">
 export interface UserData {
-    no: number
+    id?: number
     name: string
     phone: string
 }
@@ -94,7 +94,7 @@ const toggleSelectAll = () => {
     if (isAllSelected.value) {
         emit('update:selectedRows', [])
     } else {
-        emit('update:selectedRows', processedData.value.map(row => row.no))
+        emit('update:selectedRows', processedData.value.map(row => row.id).filter((id): id is number => id !== undefined))
     }
 }
 
@@ -110,6 +110,12 @@ const toggleSelectRow = (no: number) => {
     
     emit('update:selectedRows', newSelectedRows)
 }
+
+const triggerBroadcast = () => {
+    if (props.selectedRows.length > 0) {
+        emit('broadcast')
+    }
+}
 </script>
 
 <template>
@@ -124,16 +130,16 @@ const toggleSelectRow = (no: number) => {
                         </th>
                         <th>
                             <span class="is-flex is-align-items-center is-justify-content-space-between"
-                                @click="handleSort('no')">
+                                @click="handleSort('id')">
                                 <span class="is-align-items-center">No</span>
                                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
                                     xmlns="http://www.w3.org/2000/svg">
                                     <path
                                         d="M5.41504 7.34924L9.24082 2.88583C9.63991 2.42022 10.3602 2.42022 10.7593 2.88583L14.5851 7.34924C15.1411 7.99791 14.6802 9.00003 13.8259 9.00003H6.1743C5.31994 9.00003 4.85903 7.99791 5.41504 7.34924Z"
-                                        :fill="getColorUp('no')" />
+                                        :fill="getColorUp('id')" />
                                     <path
                                         d="M14.5851 12.6508L10.7593 17.1142C10.3602 17.5798 9.63991 17.5798 9.24082 17.1142L5.41504 12.6508C4.85903 12.0021 5.31994 11 6.1743 11L13.8259 11C14.6802 11 15.1411 12.0021 14.5851 12.6508Z"
-                                        :fill="getColorDown('no')" />
+                                        :fill="getColorDown('id')" />
                                 </svg>
                             </span>
                         </th>
@@ -190,10 +196,10 @@ const toggleSelectRow = (no: number) => {
                             </tr>
                         </template>
                         <template v-else>
-                            <tr v-for="(user, index) in processedData" :key="user.no">
+                            <tr v-for="(user, index) in processedData" :key="user.id">
                                 <td>
-                                    <VCheckbox :modelValue="props.selectedRows.includes(user.no)" :value="user.no" color="primary"
-                                        paddingless @update:modelValue="() => toggleSelectRow(user.no)" />
+                                    <VCheckbox v-if="user.id !== undefined" :modelValue="props.selectedRows.includes(user.id)" :value="user.id" color="primary"
+                                        paddingless @update:modelValue="() => toggleSelectRow(user.id!)" />
                                 </td>
                                 <td>{{ index + 1 + ((props.filter?.page - 1) * props.filter?.offset) }}</td>
                                 <td>{{ user.name }}</td>
