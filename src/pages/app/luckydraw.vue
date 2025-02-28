@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { fetchDoorprize } from '/@src/composables/event/useDoorprize'
+import { useDoorprize } from '/@src/stores/event/doorprize'
+import { useParticipants } from '/@src/stores/event/participants'
+import { fetchEventParticipants } from '/@src/composables/event/useParticipants'
 
 interface Participant {
     id: number
@@ -10,10 +14,13 @@ interface Participant {
 interface Doorprize {
     id: number
     name: string
-    image: string
-    description: string
-    maxWinners: number
-    winners: Participant[]
+    photo: string
+    total_winner: number
+    participants: Participant[]
+    created_at: string
+    updated_at: string
+    deleted_at: null | string
+    created_by: number
 }
 
 const pageTitle = useVueroContext<string>('page-title')
@@ -21,86 +28,40 @@ const pageTitle = useVueroContext<string>('page-title')
 const searchParticipants = ref('')
 const multipleDoorprizesPerWinner = ref(false)
 const currentDoorprize = ref<Doorprize | null>(null)
+const isFullscreen = ref(false)
+const { doorprize } = useDoorprize()
+const { participants } = useParticipants()
 
-const participants = ref<Participant[]>([
-    { id: 1, name: 'Basuki Abdullah' },
-    { id: 2, name: 'Sulistyo Budi' },
-    { id: 3, name: 'Muhammad Muslim' },
-    { id: 4, name: 'Paulus Jeharu' },
-    { id: 5, name: 'Dhoddy Cahya' },
-    { id: 6, name: 'Dewa Gede Adhiyaksa' },
-    { id: 7, name: 'Muhammad Sulton' },
-    { id: 8, name: 'Viola Salvadora' },
-    { id: 9, name: 'I Wayan Ferry' },
-    { id: 10, name: 'Adam Mahyudi' },
-    { id: 11, name: 'Vinsensiana Aprilia Nanda' },
-    { id: 12, name: 'Anggi Susanto' },
-    { id: 13, name: 'Muhammad Nur Hidayat' },
-    { id: 14, name: 'Muhammad Satrio Nugroho' },
-    { id: 15, name: 'Faqih Fansuri' },
-    { id: 16, name: 'Rina Kusumawati' },
-    { id: 17, name: 'Budi Santoso' },
-    { id: 18, name: 'Sri Wahyuni' },
-    { id: 19, name: 'Hendro Wicaksono' },
-    { id: 20, name: 'Diana Puspita' }
-])
-
-const doorprizes = ref<Doorprize[]>([
-    {
-        id: 1,
-        name: 'Honda Civic Turbo',
-        image: '/images/doorprize/civic.svg',
-        description: 'Brand new Honda Civic Turbo',
-        maxWinners: 1,
-        winners: []
-    },
-    {
-        id: 2,
-        name: 'Honda Brio RS',
-        image: '/images/doorprize/brio.svg',
-        description: 'Brand new Honda Brio RS',
-        maxWinners: 1,
-        winners: []
-    },
-    {
-        id: 3,
-        name: 'New Yamaha R25',
-        image: '/images/doorprize/r25.svg',
-        description: 'Brand new Yamaha R25',
-        maxWinners: 1,
-        winners: []
-    },
-    {
-        id: 4,
-        name: 'Honda Vario 150',
-        image: '/images/doorprize/vario.svg',
-        description: 'Brand new Honda Vario 150',
-        maxWinners: 1,
-        winners: []
-    },
-    {
-        id: 5,
-        name: 'Uang Tunai Rp5.000.000',
-        image: '/images/doorprize/money.svg',
-        description: 'Cash prize Rp5.000.000',
-        maxWinners: 5,
-        winners: []
-    },
-])
+// Mock API call to fetch doorprizes
+const fetchDoorprizes = async () => {
+    fetchDoorprize({
+        offset: 999
+    })
+    
+    if (doorprize.data.length > 0 && !currentDoorprize.value) {
+        currentDoorprize.value = doorprize.data[0]
+    }
+}
 
 const filteredParticipants = computed(() => {
-    let list = participants.value
+    let list = participants.data
 
     if (!multipleDoorprizesPerWinner.value) {
+        // Filter out participants who already won any doorprize
         list = list.filter((p) => !p.selected)
     }
 
     if (searchParticipants.value) {
-        list = list.filter((participant) =>
+        list = list.filter((participant: any) =>
             participant.name.toLowerCase().includes(searchParticipants.value.toLowerCase())
         )
     }
     return list
+})
+
+const isAllWinnersSelected = computed(() => {
+    if (!currentDoorprize.value) return false
+    return currentDoorprize.value.participants.length >= currentDoorprize.value.total_winner
 })
 
 const selectDoorprize = (doorprize: Doorprize) => {
@@ -109,27 +70,58 @@ const selectDoorprize = (doorprize: Doorprize) => {
 
 const nextDoorprize = () => {
     if (!currentDoorprize.value) return
-    const currentIndex = doorprizes.value.findIndex(d => d.id === currentDoorprize.value?.id)
-    if (currentIndex < doorprizes.value.length - 1) {
-        currentDoorprize.value = doorprizes.value[currentIndex + 1]
+    const currentIndex = doorprize.data.findIndex(d => d.id === currentDoorprize.value?.id)
+    if (currentIndex < doorprize.data.length - 1) {
+        currentDoorprize.value = doorprize.data[currentIndex + 1]
     }
 }
 
-const handleWinnerSelected = (winner: Participant) => {
-    // Mark participant as selected in main list
-    const participantIndex = participants.value.findIndex(p => p.id === winner.id)
-    if (participantIndex !== -1) {
-        participants.value[participantIndex].selected = true
-    }
+const handleWinnerSelected = (winner: Participant, shouldEliminate: boolean = true) => {
+    if (!currentDoorprize.value) return
 
-    // Add winner to current doorprize
-    if (currentDoorprize.value) {
-        currentDoorprize.value.winners.push({...winner})
+    if (shouldEliminate) {
+        // Mark participant as selected in main list if we're eliminating them
+        if (!multipleDoorprizesPerWinner.value) {
+            const participantIndex = participant.data.findIndex(p => p.id === winner.id)
+            if (participantIndex !== -1) {
+                participants.data[participantIndex].selected = true
+            }
+        }
+
+        // Add winner to current doorprize
+        currentDoorprize.value.participants.push({ ...winner })
+    }
+}
+
+const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(e => {
+            console.error(`Error attempting to enable fullscreen: ${e.message}`)
+        })
+        isFullscreen.value = true
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen()
+            isFullscreen.value = false
+        }
     }
 }
 
 onMounted(() => {
     pageTitle.value = ''
+    fetchDoorprizes()
+    fetchEventParticipants({
+        offset: 999
+    })
+
+    // Listen for fullscreen change events
+    document.addEventListener('fullscreenchange', () => {
+        isFullscreen.value = !!document.fullscreenElement
+    })
+})
+
+onUnmounted(() => {
+    document.removeEventListener('fullscreenchange', () => { })
 })
 
 useHead({
@@ -138,19 +130,17 @@ useHead({
 </script>
 
 <template>
-    <div class="drawing-wrapper">
+    <div class="drawing-wrapper" :class="{ 'is-fullscreen': isFullscreen }">
         <!-- Side kiri: Daftar Peserta -->
         <VCard radius="smooth" class="participants-area">
             <div class="card-head">
                 <!-- Switch multiple doorprizes -->
                 <VField class="mb-0">
                     <VControl>
-                        <VSwitchBlock color="primary" label="Multiple Doorprizes per Winner"
+                        <VSwitchBlock color="primary" label="1 winner/doorprize"
                             v-model="multipleDoorprizesPerWinner" />
                     </VControl>
                 </VField>
-
-                <VButton icon="material-symbols:volume-up">Mute</VButton>
             </div>
 
             <!-- Search box -->
@@ -178,35 +168,45 @@ useHead({
         <!-- Tengah: Display Doorprize + Winner -->
         <VCard radius="smooth" class="prize-display-area">
             <div class="prize-image" v-if="currentDoorprize">
-                <img :src="currentDoorprize.image" :alt="currentDoorprize.name" />
+                <img :src="currentDoorprize.photo" :alt="currentDoorprize.name" />
                 <h2 class="prize-name">{{ currentDoorprize.name }}</h2>
+                <p class="winners-count">
+                    Winners: {{ currentDoorprize.participants.length }} / {{ currentDoorprize.total_winner }}
+                </p>
             </div>
 
             <!-- Area animasi/spinning -->
             <div class="winner-display">
-                <RollingAnimation :participants="filteredParticipants"
-                    :current-doorprize="currentDoorprize" @winner-selected="handleWinnerSelected" />
+                <RollingAnimation :participants="filteredParticipants" :current-doorprize="currentDoorprize"
+                    @winner-selected="handleWinnerSelected" :is-all-winners-selected="isAllWinnersSelected"
+                    @next-doorprize="nextDoorprize" />
             </div>
         </VCard>
 
         <!-- Side kanan: List Doorprize -->
         <VCard radius="smooth" class="doorprize-area">
-            <h3 class="title is-5 mb-2">Available Prizes</h3>
+            <div class="is-flex is-align-items-center is-justify-content-space-between mb-3">
+                <h3 class="title is-6 mb-0">Doorprize List</h3>
+                <VButton icon="material-symbols:fullscreen" @click="toggleFullscreen">
+                    {{ isFullscreen ? 'Exit Fullscreen' : 'Fullscreen' }}
+                </VButton>
+            </div>
             <div class="doorprize-list">
-                <div v-for="prize in doorprizes" :key="prize.id" class="doorprize-item"
+                <div v-for="prize in doorprize.data" :key="prize.id" class="doorprize-item"
                     :class="{ 'is-active': currentDoorprize?.id === prize.id }" @click="selectDoorprize(prize)">
-                    <img :src="prize.image" :alt="prize.name" />
+                    <img :src="prize.photo" :alt="prize.name" />
                     <div class="prize-info">
                         <h4>{{ prize.name }}</h4>
-                        <!-- Contoh menampilkan jumlah pemenang -->
-                        <p v-if="prize.winners.length === 0">No Winners Yet</p>
+                        <!-- Display winners information -->
+                        <p v-if="prize.participants.length === 0">No Winners Yet</p>
                         <p v-else>
-                            {{ prize.winners.length }} Winner(s):
-                            <!-- tampilkan nama pemenang, contoh singkat -->
-                            <span v-for="(w, i) in prize.winners" :key="w.id">
-                                {{ w.name }}<span v-if="i < prize.winners.length - 1">, </span>
-                            </span>
+                            {{ prize.participants.length }} / {{ prize.total_winner }} Winner(s)
                         </p>
+                        <div class="winners-list" v-if="prize.participants.length > 0">
+                            <span v-for="(w, i) in prize.participants" :key="w.id">
+                                {{ w.name }}<span v-if="i < prize.participants.length - 1">, </span>
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -225,8 +225,14 @@ useHead({
     background-repeat: no-repeat;
     background-size: cover;
 
+    &.is-fullscreen {
+        height: 100vh;
+        padding: 20px;
+    }
+
     .participants-area {
         max-width: 400px;
+        width: 25%;
 
         .card-body {
             border: 1px solid #e8e8e8;
@@ -297,13 +303,20 @@ useHead({
             margin-bottom: 2rem;
 
             img {
-                max-width: 300px;
+                max-width: 250px;
                 height: auto;
+                object-fit: contain;
             }
 
             .prize-name {
                 font-size: 1.5rem;
                 margin-top: 1rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .winners-count {
+                font-size: 1rem;
+                color: #666;
             }
         }
 
@@ -318,14 +331,15 @@ useHead({
     }
 
     .doorprize-area {
-        max-width: 262px;
+        max-width: 300px;
+        width: 25%;
 
         .doorprize-list {
             display: flex;
             flex-direction: column;
             gap: 1rem;
-            overflow: scroll;
-            max-height: calc(90vh - 150px);
+            overflow-y: auto;
+            max-height: calc(90vh - 180px);
 
             &::-webkit-scrollbar {
                 height: 0px;
@@ -344,10 +358,8 @@ useHead({
             .doorprize-item {
                 display: flex;
                 align-items: center;
-                flex-direction: column;
-                justify-content: center;
-                text-align: center;
-                padding: 0.5rem;
+                gap: 0.5rem;
+                padding: 0.75rem;
                 border: 1px solid #eee;
                 border-radius: 8px;
                 cursor: pointer;
@@ -366,19 +378,30 @@ useHead({
                     width: 60px;
                     height: 60px;
                     object-fit: cover;
-                    margin-right: 1rem;
                 }
 
                 .prize-info {
+                    flex: 1;
+
                     h4 {
                         margin: 0;
                         font-size: 1rem;
+                        font-weight: 600;
                     }
 
                     p {
                         margin: 0;
                         font-size: 0.875rem;
                         color: #666;
+                    }
+
+                    .winners-list {
+                        font-size: 0.75rem;
+                        color: #888;
+                        margin-top: 0.25rem;
+                        max-height: 60px;
+                        overflow-y: auto;
+                        word-break: break-word;
                     }
                 }
             }
@@ -397,6 +420,24 @@ useHead({
 
     100% {
         transform: scale(1);
+    }
+}
+
+@media (max-width: 1200px) {
+    .drawing-wrapper {
+        flex-direction: column;
+        height: auto;
+        gap: 20px;
+
+        .participants-area,
+        .doorprize-area {
+            width: 100%;
+            max-width: 100%;
+        }
+
+        .prize-display-area {
+            margin: 20px 0;
+        }
     }
 }
 </style>
