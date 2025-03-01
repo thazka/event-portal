@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { storeSeat, updateSeat } from '/@src/composables/event/useSeats';
+import { storeSeat, updateSeat, importSeats, validateExcelFile } from '/@src/composables/event/useSeats';
 
 interface SeatType {
     type: 'create' | 'file' | 'edit' | undefined
@@ -21,6 +21,16 @@ const notyf = useNotyf()
 const form = reactive({
     id: 0,
     name: ''
+})
+
+const importOptions = reactive({
+    replaceAll: false
+})
+
+const importStats = reactive({
+    imported: 0,
+    failed: 0,
+    showStats: false
 })
 
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -46,12 +56,14 @@ const handleDragLeave = () => { isDragging.value = false }
 const triggerFileInput = () => fileInput.value?.click()
 
 const processFile = async (file: File) => {
-    if (isValidFileFormat(file.name)) {
+    const validation = validateExcelFile(file)
+
+    if (validation.isValid) {
         selectedFile.value = file
         showFileProgress()
-        await startUpload()
+        // We don't start upload immediately now, just show the file
     } else {
-        notyf.error(`Unsupported file format. Please upload a file in ${acceptedFormats.join(' or ')} format.`)
+        notyf.error(validation.message || 'Invalid file')
     }
 }
 
@@ -125,11 +137,53 @@ const submit = async () => {
         }).catch(() => {
             notyf.error('Failed to update seat')
         })
-    } else if (isFileMode.value) {
-        if (selectedFile.value) {
-            await startUpload()
-            emit('submit')
-            closeModal()
+    } else if (isFileMode.value && selectedFile.value) {
+        isUploading.value = true
+        uploadProgress.value = 0
+
+        // Simulate initial progress
+        const progressInterval = setInterval(() => {
+            if (uploadProgress.value < 90) {
+                uploadProgress.value += 10
+            }
+        }, 200)
+
+        try {
+            const response = await importSeats(selectedFile.value, {
+                replaceAll: importOptions.replaceAll
+            })
+
+            // Set to 100% when done
+            clearInterval(progressInterval)
+            uploadProgress.value = 100
+
+            if (response.status) {
+                // Show import stats
+                importStats.imported = response.imported || 0
+                importStats.failed = response.failed || 0
+                importStats.showStats = true
+
+                await new Promise(resolve => setTimeout(resolve, 500))
+
+                notyf.success(response.message || 'Seats imported successfully')
+                emit('submit')
+                closeModal()
+            } else {
+                // Display the error message from the API
+                notyf.error(response.message || 'Failed to import seats')
+
+                // If there are validation errors, you might want to display them
+                if (response.errors) {
+                    // Optional: Display detailed errors if needed
+                    console.error('Import validation errors:', response.errors)
+                }
+            }
+        } catch (error) {
+            clearInterval(progressInterval)
+            notyf.error('An unexpected error occurred during import')
+            console.error('Import error:', error)
+        } finally {
+            isUploading.value = false
         }
     }
 }
@@ -201,9 +255,11 @@ watch(() => props.open, (isOpen) => {
                     </div>
                 </div>
 
-                <p class="notes mt-2">
-                    Accepted file type <strong>only {{ acceptedFormats.join(' or ') }}</strong>
-                </p>
+                <div class="is-flex is-justify-content-space-between mt-2">
+                    <p class="notes">
+                        Accepted file type <strong>only {{ acceptedFormats.join(' or ') }}</strong>
+                    </p>
+                </div>
 
                 <div v-if="showProgress" class="file-progress-container mt-5">
                     <div class="file-name mb-0">{{ selectedFile?.name }}</div>
@@ -215,6 +271,25 @@ watch(() => props.open, (isOpen) => {
                             <VProgress size="tiny" :value="uploadProgress" />
                         </div>
                         <VIcon icon="lucide:trash-2" class="delete-btn" @click="cancelUpload" />
+                    </div>
+                </div>
+
+                <!-- Import stats result, shown after successful import -->
+                <div v-if="importStats.showStats" class="import-stats mt-4 p-4 has-background-primary-light is-rounded">
+                    <h4 class="subtitle is-6 mb-2">Import Summary</h4>
+                    <div class="is-flex is-justify-content-space-between">
+                        <div>
+                            <span class="has-text-success">
+                                <VIcon icon="lucide:check-circle" size="16" />
+                                {{ importStats.imported }} seats imported
+                            </span>
+                        </div>
+                        <div v-if="importStats.failed > 0">
+                            <span class="has-text-danger">
+                                <VIcon icon="lucide:alert-circle" size="16" />
+                                {{ importStats.failed }} failed
+                            </span>
+                        </div>
                     </div>
                 </div>
             </template>

@@ -60,10 +60,12 @@ const filteredParticipants = computed(() => {
 })
 
 const isAllWinnersSelected = computed(() => {
-    if (!currentDoorprize.value) return false
-    return currentDoorprize.value.participants.length >= currentDoorprize.value.total_winner
-})
-
+    if (!currentDoorprize.value) return false;
+    const currentWinners = currentDoorprize.value.participants ? 
+                          currentDoorprize.value.participants.length : 0;
+    const maxWinners = currentDoorprize.value.total_winner || 0;
+    return currentWinners >= maxWinners;
+});
 const selectDoorprize = (doorprize: Doorprize) => {
     currentDoorprize.value = doorprize
 }
@@ -82,14 +84,17 @@ const handleWinnerSelected = (winner: Participant, shouldEliminate: boolean = tr
     if (shouldEliminate) {
         // Mark participant as selected in main list if we're eliminating them
         if (!multipleDoorprizesPerWinner.value) {
-            const participantIndex = participant.data.findIndex(p => p.id === winner.id)
+            const participantIndex = participants.data.findIndex(p => p.id === winner.id)
             if (participantIndex !== -1) {
                 participants.data[participantIndex].selected = true
             }
         }
 
-        // Add winner to current doorprize
-        currentDoorprize.value.participants.push({ ...winner })
+        // Make sure participants array exists before pushing
+        if (!currentDoorprize.value.participants) {
+            currentDoorprize.value.participants = [];
+        }
+        currentDoorprize.value.participants.push({ ...winner });
     }
 }
 

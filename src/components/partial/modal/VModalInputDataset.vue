@@ -1,27 +1,55 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, withDefaults, defineEmits, defineProps, computed } from 'vue'
+import { useNotyf } from '/@src/composables/notyf'
+import { importParticipant } from '/@src/composables/event/useParticipants'
 
-const props = withDefaults(defineProps(), {
-    open: false
+interface FileUploadProps {
+    open: boolean
+    maxFileSize?: number // in bytes
+    allowedFileTypes?: string[]
+    onSuccess?: (data: any) => void
+    onError?: (error: any) => void
+}
+
+const props = withDefaults(defineProps<FileUploadProps>(), {
+    open: false,
+    maxFileSize: 10 * 1024 * 1024,
+    allowedFileTypes: () => ['.xls', '.xlsx'],
+    onSuccess: undefined,
+    onError: undefined
 })
 
-const emit = defineEmits(['close', 'upload'])
+const emit = defineEmits<{
+    (e: 'close'): void
+}>()
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const isDragging = ref(false)
 const selectedFile = ref<File | null>(null)
 const isUploading = ref(false)
+const isImporting = ref(false)
 const uploadProgress = ref(0)
 const showProgress = ref(false)
+const errorMessage = ref('')
 const notyf = useNotyf()
 
-const closeModal = () => {
-    emit('close')
+const resetState = () => {
     selectedFile.value = null
     isDragging.value = false
     uploadProgress.value = 0
     isUploading.value = false
+    isImporting.value = false
     showProgress.value = false
+    errorMessage.value = ''
+
+    if (fileInput.value) {
+        fileInput.value.value = ''
+    }
+}
+
+const closeModal = () => {
+    resetState()
+    emit('close')
 }
 
 const handleDragEnter = () => {
@@ -38,39 +66,60 @@ const triggerFileInput = () => {
     }
 }
 
+const isValidFileType = (file: File): boolean => {
+    return props.allowedFileTypes.some(type =>
+        file.name.toLowerCase().endsWith(type.toLowerCase())
+    )
+}
+
+const isValidFileSize = (file: File): boolean => {
+    return file.size <= props.maxFileSize
+}
+
+const processSelectedFile = async (file: File) => {
+    errorMessage.value = ''
+
+    if (!isValidFileType(file)) {
+        const allowedTypes = props.allowedFileTypes.join(', ')
+        errorMessage.value = `Unsupported file format. Please upload ${allowedTypes} file.`
+        notyf.error(errorMessage.value)
+        return
+    }
+
+    if (!isValidFileSize(file)) {
+        errorMessage.value = `File is too large. Maximum size is ${formatFileSize(props.maxFileSize)}.`
+        notyf.error(errorMessage.value)
+        return
+    }
+
+    selectedFile.value = file
+    showProgress.value = true
+    uploadProgress.value = 0
+
+    try {
+        await startUpload()
+    } catch (error) {
+        handleUploadError(error)
+    }
+}
+
 const handleDrop = async (event: DragEvent) => {
     isDragging.value = false
+    event.preventDefault()
+
     const files = event.dataTransfer?.files
 
     if (files && files.length > 0) {
-        const file = files[0]
-        // Validasi hanya .xls / .xlsx
-        if (file.name.endsWith('.xls') || file.name.endsWith('.xlsx')) {
-            selectedFile.value = file
-            showFileProgress(file)
-            await startUpload()
-        } else {
-            notyf.error('Unsupported file format. Please upload a file in PNG, JPG, or JPEG format.')
-        }
+        await processSelectedFile(files[0])
     }
 }
 
-// Jika ingin menonaktifkan unggah lewat klik, bisa dihapus:
 const handleFileChange = async (event: Event) => {
     const input = event.target as HTMLInputElement
-    if (input.files && input.files.length > 0) {
-        const file = input.files[0]
-        if (file.name.endsWith('.xls') || file.name.endsWith('.xlsx')) {
-            selectedFile.value = file
-            showFileProgress(file)
-            await startUpload()
-        }
-    }
-}
 
-const showFileProgress = (file: File) => {
-    showProgress.value = true
-    uploadProgress.value = 0 // Reset progress
+    if (input.files && input.files.length > 0) {
+        await processSelectedFile(input.files[0])
+    }
 }
 
 const startUpload = async () => {
@@ -80,49 +129,102 @@ const startUpload = async () => {
     showProgress.value = true
     uploadProgress.value = 0
 
-    // Simulasi upload progress
-    for (let i = 0; i <= 100; i += 10) {
-        uploadProgress.value = i
-        await new Promise(resolve => setTimeout(resolve, 200))
+    try {
+        uploadProgress.value = 30
+
+        await new Promise(resolve => setTimeout(resolve, 100))
+        uploadProgress.value = 100
+
+    } catch (error) {
+        handleUploadError(error)
+    } finally {
+        isUploading.value = false
     }
+}
 
-    // Selesai upload
-    uploadProgress.value = 100
-    await new Promise(resolve => setTimeout(resolve, 500))
+const importParticipants = async () => {
+    if (!selectedFile.value) return
 
-    // Emit event 'upload'
-    emit('upload', selectedFile.value)
+    isImporting.value = true
+    uploadProgress.value = 0
 
-    // Reset state
-    isUploading.value = false
-    // selectedFile.value = null
-    // showProgress.value = false
+    try {
+        const formData = new FormData()
+        formData.append('file', selectedFile.value)
+
+        uploadProgress.value = 30
+
+        const result = await importParticipant(formData)
+
+        uploadProgress.value = 100
+
+        if (result.success === false || result.message?.includes('error')) {
+            throw new Error(result.message || 'Failed to import participants')
+        }
+
+        notyf.success('Participants imported successfully!')
+
+        if (props.onSuccess) {
+            props.onSuccess(result)
+        }
+
+        setTimeout(() => {
+            closeModal()
+        }, 1000)
+
+    } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : 'Failed to import participants'
+        notyf.error(errorMsg)
+
+        if (props.onError) {
+            props.onError(error)
+        }
+
+        errorMessage.value = errorMsg
+    } finally {
+        isImporting.value = false
+    }
 }
 
 const cancelUpload = () => {
-    selectedFile.value = null
+    resetState()
+}
+
+const handleUploadError = (error: unknown) => {
+    const errorMsg = error instanceof Error ? error.message : 'Failed to upload file'
+    notyf.error(errorMsg)
+    errorMessage.value = errorMsg
     isUploading.value = false
-    showProgress.value = false
-    uploadProgress.value = 0
+    isImporting.value = false
 }
 
-const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
+const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes'
 
-    const k = 1024;
-    const dm = 2; 
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']; 
+    const k = 1024
+    const dm = 2
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
 
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i]
 }
+
+const allowedTypesText = computed(() => {
+    return props.allowedFileTypes.join(' or ')
+})
 </script>
 
 <template>
-    <VModal :open="props.open" title="Upload your participants dataset" class="modal-dataset" size="medium" actions="center" middletitle noborder @close="closeModal">
+    <VModal :open="props.open" title="Import Participants Dataset" class="modal-dataset" size="medium" actions="center"
+        middletitle noborder @close="closeModal">
         <template #content>
-            <div class="file-drop-zone" :class="{ 'is-dragover': isDragging }" @dragenter.prevent="handleDragEnter" @dragleave.prevent="handleDragLeave" @dragover.prevent @drop.prevent="handleDrop" @click="triggerFileInput">
-                <input ref="fileInput" type="file" accept=".xls,.xlsx" class="file-input" @change="handleFileChange" />
+            <!-- File Drop Zone -->
+            <div class="file-drop-zone" :class="{ 'is-dragover': isDragging, 'has-error': errorMessage }"
+                @dragenter.prevent="handleDragEnter" @dragleave.prevent="handleDragLeave" @dragover.prevent
+                @drop.prevent="handleDrop" @click="triggerFileInput">
+                <input ref="fileInput" type="file" :accept="props.allowedFileTypes.join(',')" class="file-input"
+                    @change="handleFileChange" />
+
                 <div class="upload-content">
                     <span class="icon is-large">
                         <VIcon icon="lucide:upload-cloud" size="48" />
@@ -133,27 +235,41 @@ const formatFileSize = (bytes: number) => {
                 </div>
             </div>
 
+            <!-- File Type Notes -->
             <p class="notes mt-2">
-                Accepted file type <strong>only .xls or .xlsx</strong>
+                Accepted file type <strong>{{ allowedTypesText }}</strong>
+                <span v-if="props.maxFileSize"> • Max file size: {{ formatFileSize(props.maxFileSize) }}</span>
             </p>
 
+            <!-- Error Message -->
+            <p v-if="errorMessage" class="error-message mt-2">
+                {{ errorMessage }}
+            </p>
+
+            <!-- File Progress -->
             <div v-if="showProgress" class="file-progress-container mt-5">
-                <div class="file-name mb-0">{{ selectedFile?.name }}</div>
-                <div class="progress-wrapper is-flex is-align-items-center  ">
-                    <div class="progress-row has-fullwidth mr-5">
-                        <div class="file-size">
-                            {{ selectedFile ? formatFileSize(selectedFile.size) : '' }}
-                        </div>
-                        <VProgress size="tiny" :value="uploadProgress" />
+                <div class="file-details">
+                    <div class="file-name has-borderless p-0">{{ selectedFile?.name }}</div>
+                    <div class="file-size">
+                        {{ selectedFile ? formatFileSize(selectedFile.size) : '' }}
                     </div>
-                    <VIcon icon="lucide:trash-2" class="delete-btn" @click="cancelUpload"></VIcon>
+                </div>
+
+                <div class="progress-wrapper is-flex is-align-items-center">
+                    <div class="progress-row has-fullwidth mr-5">
+                        <VProgress size="tiny" :value="uploadProgress"
+                            :class="{ 'is-primary': !isImporting, 'is-info': isImporting }" />
+                        <p v-if="isImporting" class="upload-status-text">Processing file...</p>
+                    </div>
+                    <VIcon v-if="!isImporting" icon="lucide:trash-2" class="delete-btn" @click.stop="cancelUpload" />
                 </div>
             </div>
         </template>
 
         <template #action>
-            <VButton color="primary" raised :loading="isUploading" :disabled="!selectedFile">
-                Upload File
+            <VButton color="primary" raised :loading="isImporting"
+                :disabled="!selectedFile || isImporting || !!errorMessage" @click="importParticipants">
+                {{ isImporting ? 'Importing...' : 'Import Participants' }}
             </VButton>
         </template>
     </VModal>
@@ -171,6 +287,11 @@ const formatFileSize = (bytes: number) => {
     &.is-dragover {
         border-color: #3273dc;
         background-color: rgba(#3273dc, 0.05);
+    }
+
+    &.has-error {
+        border-color: #ff3860;
+        background-color: rgba(#ff3860, 0.05);
     }
 
     &:hover {
@@ -191,11 +312,11 @@ const formatFileSize = (bytes: number) => {
 
     .icon {
         color: #dbdbdb;
-        font-size: 35px;
+        transition: color 0.3s ease;
     }
 
     .notes-upload {
-        font-family: Roboto;
+        font-family: Roboto, sans-serif;
         font-weight: 400;
         font-size: 14px;
         line-height: 21px;
@@ -208,23 +329,29 @@ const formatFileSize = (bytes: number) => {
     border-radius: 6px;
     padding: 1rem;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    min-height: 80px;
+    flex-direction: column;
+    gap: 0.5rem;
+
+    .file-details {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
 
     .progress-wrapper {
-        width: 180px;
+        width: 100%;
     }
 }
 
 .file-name {
-    margin-bottom: 0.25rem;
-    font-family: Roboto;
-    font-weight: 400;
-    font-size: 15.4px;
-    line-height: 23.1px;
-    border: none !important;
+    font-family: Roboto, sans-serif;
+    font-weight: 500;
+    font-size: 15px;
+    line-height: 23px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 70%;
 }
 
 .file-size {
@@ -232,11 +359,14 @@ const formatFileSize = (bytes: number) => {
     color: #666;
 }
 
+.progress-row {
+    flex: 1;
+}
+
 .delete-btn {
-    border: none;
     color: #666;
     cursor: pointer;
-    margin: 0 10px;
+    transition: color 0.2s ease;
 
     &:hover {
         color: #ff3860;
@@ -244,10 +374,24 @@ const formatFileSize = (bytes: number) => {
 }
 
 .notes {
-    font-family: Roboto;
+    font-family: Roboto, sans-serif;
     font-weight: 400;
     font-style: italic;
     font-size: 12px;
     line-height: 18px;
+    color: #666;
+}
+
+.error-message {
+    color: #ff3860;
+    font-size: 13px;
+    margin-top: 0.5rem;
+}
+
+.upload-status-text {
+    font-size: 12px;
+    color: #3273dc;
+    margin-top: 0.25rem;
+    text-align: center;
 }
 </style>

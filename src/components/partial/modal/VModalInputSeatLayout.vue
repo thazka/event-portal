@@ -23,19 +23,17 @@ const showProgress = ref(false)
 const existingFileUrl = ref<string | null>(null)
 const existingFileName = ref<string | null>(null)
 
-onMounted(async () => {
-    await getExistingLayout()
-})
+onMounted( () => getExistingLayout())
 
 const getExistingLayout = async () => {
     try {
         isUploading.value = true
-        const response = await fetchLayoutEvent()
+        const response = await fetchLayoutEvent(props.eventId)
         isUploading.value = false
 
-        if (response && response.data && response.data.file_url) {
-            existingFileUrl.value = response.data.file_url
-            existingFileName.value = response.data.file_name || extractFileNameFromUrl(response.data.file_url)
+        if (response && response.data && response.data.file) {
+            existingFileUrl.value = response.data.file
+            existingFileName.value = response.data.file_name || extractFileNameFromUrl(response.data.file)
             showProgress.value = true
             uploadProgress.value = 100
         }

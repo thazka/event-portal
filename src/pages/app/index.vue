@@ -55,7 +55,6 @@ const handleSearch = () => {
 
 // Handle seat selection
 const handleSelectSeat = async (userId: number, seatId: number) => {
-    // Find the selected seat from seatList
     const selectedSeat = seatList.data.find(seat => seat.id === seatId)
 
     if (!selectedSeat) {
@@ -63,7 +62,6 @@ const handleSelectSeat = async (userId: number, seatId: number) => {
         return
     }
 
-    // Check if the seat is already assigned to another participant
     const seatAlreadyAssigned = participants.data.some(participant =>
         participant.event?.seat_id === seatId &&
         participant.id !== userId
@@ -123,7 +121,8 @@ onMounted(() => {
         fetchEventAnalytics(filter.event_id),
         fetchSeatList({
             offset: 99
-        })
+        }),
+        fetchLayoutEvent(filter.event_id)
     ])
 })
 
@@ -159,8 +158,17 @@ useHead({
                     </template>
                     <template #content>
                         <VLoader v-if="seatLayout.isLoading" :active="true" class="has-fullheight has-fullwidth" />
-                        <img v-else class="has-fullwidth" :src="seatLayout.data.file || '/images/event/seatmap.jpg'"
-                            alt="">
+                        <template v-else>
+                            <template v-if="!seatLayout.data.file">
+                                <VPlaceholderSection title="No Layout Detected"
+                                    subtitle="Upload your layout and it will show up here.">
+                                    <template #image>
+                                        <VIcon icon="mingcute:empty-box-fill" class="empty-state" />
+                                    </template>
+                                </VPlaceholderSection>
+                            </template>
+                            <img v-else class="has-fullwidth" :src="seatLayout.data?.file" alt="">
+                        </template>
                     </template>
                 </VCardAdvanced>
             </div>
@@ -264,7 +272,8 @@ useHead({
             </VFlexPagination>
         </div>
 
-        <VModalInputSeatLayout :open="modalSeat" :event-id="filter.event_id" @close="modalSeat = false" @upload="handleSeat" />
+        <VModalInputSeatLayout v-if="modalSeat" :open="modalSeat" :event-id="filter.event_id" @close="modalSeat = false"
+            @upload="handleSeat" />
         <VModalInputDataset :open="modalDataset" @close="modalDataset = false" />
 
     </div>

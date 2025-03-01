@@ -141,9 +141,14 @@ const setupDimensions = () => {
 const startSpin = () => {
     if (isSpinning.value || !props.currentDoorprize) return;
 
+    // Get the latest counts for accurate comparison
+    const currentWinners = props.currentDoorprize.participants ? 
+                        props.currentDoorprize.participants.length : 0;
+    const maxWinners = props.currentDoorprize.total_winner || 0;
+
     // Check if doorprize can have more winners
-    if (props.isAllWinnersSelected) {
-        alert('Maximum winners reached for this doorprize.');
+    if (currentWinners >= maxWinners) {
+        alert(`Maximum winners (${maxWinners}) reached for this doorprize.`);
         return;
     }
 
@@ -178,10 +183,18 @@ const handleWinnerDecision = (eliminate: boolean) => {
         showWinnerModal.value = false;
         winnerDetails.value = null;
         
-        // If we've reached max winners for this doorprize, suggest moving to next doorprize
-        if (eliminate && props.currentDoorprize.participants.length >= props.currentDoorprize.total_winner) {
-            emit('next-doorprize');
+        // Only suggest moving to next doorprize if we've reached max winners
+        const currentWinners = props.currentDoorprize.participants ? 
+                              props.currentDoorprize.participants.length : 0;
+        const maxWinners = props.currentDoorprize.total_winner || 0;
+        
+        if (eliminate && currentWinners >= maxWinners) {
+            // Ask if the user wants to move to the next doorprize
+            if (confirm(`You've selected all ${maxWinners} winners for this doorprize. Move to the next doorprize?`)) {
+                emit('next-doorprize');
+            }
         }
+        // Reset for next spin immediately if we haven't reached max winners
     }
 };
 
@@ -274,7 +287,7 @@ onUnmounted(() => {
     </div>
     
     <!-- Winner Modal using separate component -->
-    <!-- <WinnerModal
+    <WinnerModal
         :is-open="showWinnerModal"
         :winner="winnerDetails"
         :doorprize="currentDoorprize"
@@ -282,7 +295,7 @@ onUnmounted(() => {
         @confirm-winner="handleWinnerDecision(true)"
         @eliminate="handleWinnerDecision(false)"
         @next-doorprize="moveToNextDoorprize"
-    /> -->
+    />
 </template>
 
 <style lang="scss" scoped>

@@ -62,3 +62,66 @@ export const deleteSeat = async (id: number) => {
         return error
     }
 }
+
+export const importSeats = async (file: File, options: { replaceAll?: boolean } = {}) => {
+    try {
+        const formData = new FormData()
+        formData.append('file', file)
+        
+        if (options.replaceAll !== undefined) {
+            formData.append('replaceAll', options.replaceAll.toString())
+        }
+        
+        const config = {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        }
+        
+        // Make the API request
+        const { data } = await api.post('/v1/seat/import', formData, config)
+        
+        return data
+    } catch (error: any) {
+        return error
+    }
+}
+
+export const validateExcelFile = (file: File | null): { isValid: boolean; message?: string } => {
+    if (!file) {
+        return { isValid: false, message: 'No file selected' }
+    }
+    
+    // Check file type
+    const validExtensions = ['.xls', '.xlsx']
+    const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
+    
+    if (!validExtensions.includes(fileExtension)) {
+        return { 
+            isValid: false, 
+            message: `Invalid file format. Supported formats: ${validExtensions.join(', ')}`
+        }
+    }
+    
+    // Check file size (10MB max)
+    const maxSize = 10 * 1024 * 1024 // 10MB in bytes
+    
+    if (file.size > maxSize) {
+        return { 
+            isValid: false, 
+            message: `File is too large. Maximum file size is ${formatFileSize(maxSize)}`
+        }
+    }
+    
+    return { isValid: true }
+}
+
+export const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes'
+    
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`
+}

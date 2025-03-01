@@ -97,3 +97,13 @@ export const downloadParticipant = async () => {
         return error
     }
 }
+
+export const importParticipant = async (params: any) => {
+    try {
+        const { data } = await api.post(`/v1/participant/import`, params)
+
+        return data
+    } catch (error) {
+        return error
+    }
+}
