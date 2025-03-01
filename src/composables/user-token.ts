@@ -20,7 +20,7 @@ const options = {
   maxAge: 60 * 60 * 24 * 7, // 7 days
   path: '/',
   sameSite: 'lax',
-  secure: true,
+  // secure: true,
 } satisfies CookieOption
 
 export function useUserToken(event?: H3Event) {
