@@ -1,40 +1,4 @@
-.fullscreen-prompt {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.7);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 100;
-    cursor: pointer;
-}
-
-.fullscreen-message {
-    background: white;
-    padding: 20px 40px;
-    border-radius: 8px;
-    text-align: center;
-    
-    h2 {
-        margin: 0;
-        color: #333;
-    }
-}// Function to request fullscreen for card-seating-wrapper
-const requestCardFullscreen = () => {
-    const element = document.querySelector('.card-seating-wrapper')
-    if (element) {
-        if (element.requestFullscreen) {
-            element.requestFullscreen()
-        } else if ((element as any).webkitRequestFullscreen) {
-            (element as any).webkitRequestFullscreen()
-        } else if ((element as any).msRequestFullscreen) {
-            (element as any).msRequestFullscreen()
-        }
-    }
-}<script setup lang="ts">
+<script setup lang="ts">
 import moment from 'moment'
 import { fetchEventParticipants, updateAttendance } from '/@src/composables/event/useParticipants'
 import { eventOptions } from '/@src/data/options'
@@ -43,7 +7,7 @@ import { useParticipants } from '/@src/stores/event/participants'
 const pageTitle = useVueroContext<string>('page-title')
 const selectedTab = ref('broadcast')
 const { participants } = useParticipants()
-
+const route = useRoute()
 // Notification system
 const isLoading = ref(false)
 const notyf = useNotyf()
@@ -96,7 +60,7 @@ const selectParticipant = (participant: any) => {
 
     // Save selected participant to localStorage for real-time sync
     localStorage.setItem('currentSelectedParticipant', JSON.stringify(participant))
-    
+
     // Also store the ID for session persistence
     sessionStorage.setItem('selectedParticipantId', participant.id.toString())
 }
@@ -198,14 +162,16 @@ const updateParticipantStatusDisplay = () => {
     }
 }
 
+// Fixed fullscreen function to handle display mode properly
 const toggleFullscreen = () => {
     isFullscreen.value = !isFullscreen.value
 
     if (isFullscreen.value) {
         // Set this window as display only when entering fullscreen
-        isDisplayOnly.value = true
-        localStorage.setItem('hasDisplayWindow', 'true')
-        
+        if (!isDisplayOnly.value) {
+            localStorage.setItem('hasDisplayWindow', 'true')
+        }
+
         const element = document.querySelector('.card-seating-wrapper')
         if (element) {
             if (element.requestFullscreen) {
@@ -217,9 +183,10 @@ const toggleFullscreen = () => {
             }
         }
     } else {
-        isDisplayOnly.value = false
-        localStorage.setItem('hasDisplayWindow', 'false')
-        
+        if (!isDisplayOnly.value) {
+            localStorage.setItem('hasDisplayWindow', 'false')
+        }
+
         if (document.exitFullscreen) {
             document.exitFullscreen()
         } else if ((document as any).webkitExitFullscreen) {
@@ -249,10 +216,10 @@ const openDisplayView = () => {
     const url = new URL(window.location.href)
     url.searchParams.set('display', 'true')
     const newWindow = window.open(url.toString(), '_blank')
-    
+
     // Store a flag in localStorage to indicate a display window has been opened
     localStorage.setItem('displayWindowOpened', 'true')
-    
+
     // Transfer any current participant data to the new window
     if (selectedParticipant.value) {
         localStorage.setItem('currentSelectedParticipant', JSON.stringify(selectedParticipant.value))
@@ -265,16 +232,16 @@ const openDisplayView = () => {
 const handleStorageChange = (event: StorageEvent) => {
     if (!event.newValue) return
 
-    switch(event.key) {
+    switch (event.key) {
         case 'currentSelectedParticipant':
             if (!isDisplayOnly.value) return // Skip if this is the control window
-            
+
             const newParticipant = JSON.parse(event.newValue)
-            
+
             // Only update if we're not already showing this participant
             if (!selectedParticipant.value || selectedParticipant.value.id !== newParticipant.id) {
                 selectedParticipant.value = newParticipant
-                
+
                 if (newParticipant.event?.attendance) {
                     selectedStatus.value = 'Present'
                     present.value = formatDateTime(newParticipant.event.attendance)
@@ -284,20 +251,20 @@ const handleStorageChange = (event: StorageEvent) => {
                 }
             }
             break
-            
+
         case 'currentParticipantStatus':
             if (!isDisplayOnly.value) return // Skip if this is the control window
             selectedStatus.value = event.newValue
             break
-            
+
         case 'currentParticipantPresent':
             if (!isDisplayOnly.value) return // Skip if this is the control window
             present.value = event.newValue
             break
-            
+
         case 'currentSelectedEvent':
             if (!isDisplayOnly.value) return // Skip if this is the control window
-            
+
             const newEventId = parseInt(event.newValue)
             if (selectedEvent.value !== newEventId) {
                 selectedEvent.value = newEventId
@@ -307,18 +274,48 @@ const handleStorageChange = (event: StorageEvent) => {
     }
 }
 
+// Handle fullscreen change event
+const handleFullscreenChange = () => {
+    // Only update the isFullscreen state based on document.fullscreenElement
+    // This ensures consistency across browsers
+    isFullscreen.value = !!document.fullscreenElement
+
+    // If exiting fullscreen in display mode, allow re-entering fullscreen
+    if (!document.fullscreenElement && isDisplayOnly.value) {
+        // Add a small delay to make sure the browser has fully exited fullscreen mode
+        setTimeout(() => {
+            // Show fullscreen prompt again if in display mode
+            const cardContent = document.querySelector('.card-seating .card-content')
+            if (cardContent && !document.querySelector('.fullscreen-prompt')) {
+                const overlay = document.createElement('div')
+                overlay.className = 'fullscreen-prompt'
+                overlay.innerHTML = `
+                    <div class="fullscreen-message">
+                        <h2>Click anywhere to enter fullscreen</h2>
+                    </div>
+                `
+                overlay.addEventListener('click', () => {
+                    toggleFullscreen()
+                    overlay.remove()
+                })
+                cardContent.prepend(overlay)
+            }
+        }, 100)
+    }
+}
+
 onMounted(() => {
     // Check URL parameters to determine if this is display mode
     const urlParams = new URLSearchParams(window.location.search)
     if (urlParams.get('display') === 'true') {
         isDisplayOnly.value = true
-        
+
         // Hide the toolbar in display mode
         const toolbarElement = document.querySelector('.toolbar-event')
         if (toolbarElement) {
             (toolbarElement as HTMLElement).style.display = 'none'
         }
-        
+
         // Add instructions for user to click to enter fullscreen
         setTimeout(() => {
             const cardContent = document.querySelector('.card-seating .card-content')
@@ -331,7 +328,7 @@ onMounted(() => {
                     </div>
                 `
                 overlay.addEventListener('click', () => {
-                    // requestCardFullscreen()
+                    toggleFullscreen()
                     overlay.remove()
                 })
                 cardContent.prepend(overlay)
@@ -342,14 +339,16 @@ onMounted(() => {
     // Add event listener for storage events
     window.addEventListener('storage', handleStorageChange)
 
-    document.addEventListener('fullscreenchange', () => {
-        isFullscreen.value = !!document.fullscreenElement
-    })
+    // Add event listener for fullscreen changes
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange)
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange)
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange)
 
     fetchEventParticipants({ offset: 999, event_id: selectedEvent.value }).then(() => {
         // After initial data is loaded, check for query parameters or session storage
         // to restore previous selection if needed
-        
+
         // If this is display mode, check if there's a currently selected participant in localStorage
         if (isDisplayOnly.value) {
             const currentParticipantJson = localStorage.getItem('currentSelectedParticipant')
@@ -372,11 +371,15 @@ onMounted(() => {
             }
         }
     })
-    
-    // Cleanup
-    onUnmounted(() => {
-        window.removeEventListener('storage', handleStorageChange)
-    })
+})
+
+// Cleanup
+onUnmounted(() => {
+    window.removeEventListener('storage', handleStorageChange)
+    document.removeEventListener('fullscreenchange', handleFullscreenChange)
+    document.removeEventListener('webkitfullscreenchange', handleFullscreenChange)
+    document.removeEventListener('mozfullscreenchange', handleFullscreenChange)
+    document.removeEventListener('MSFullscreenChange', handleFullscreenChange)
 })
 </script>
 
@@ -449,7 +452,7 @@ onMounted(() => {
         </div>
 
         <div class="card-seating-wrapper" :class="{ 'is-fullscreen': isFullscreen, 'is-display-only': isDisplayOnly }">
-            <VCardAdvanced nofooter class="card-seating">
+            <VCardAdvanced nofooter class="card-seating" :selectedEvent="selectedEvent">
                 <template #header-left>
                     <h3 class="title-card">Participant Seat</h3>
                 </template>
@@ -459,35 +462,55 @@ onMounted(() => {
                         outlined class="is-flex is-align-item-center" @click="toggleFullscreen">
                         {{ isFullscreen ? 'Exit Full Screen' : 'Full Screen' }}
                     </VButton>
-                    <VButton v-if="!isDisplayOnly" color="info" 
-                        icon="lucide:external-link"
-                        outlined class="is-flex is-align-item-center ml-2" 
-                        @click="openDisplayView">
+                    <VButton v-if="!isDisplayOnly" color="info" icon="lucide:external-link" outlined
+                        class="is-flex is-align-item-center ml-2" @click="openDisplayView">
                         Open Display View
                     </VButton>
                 </template>
                 <template #content>
-                    <div class="has-text-centered">
-                        <img src="/images/event/seating-color.svg" alt="" class="">
+                    <div class="columns columns-participant has-fullheight">
+                        <!-- Left side - Meeting Info Card -->
+                        <div class="column is-5 has-fullheight">
+                            <div class="meeting-info-card has-fullheight">
+                                <div class="participant-content">
+                                    <div class="participant-name-container">
+                                        <h1 class="participant-name">{{ selectedParticipant ? selectedParticipant.name :
+                                            'No Participant Selected'}}</h1>
+                                    </div>
 
-                        <h1 class="title">{{ selectedParticipant ? selectedParticipant.name : 'No Participant Selected'
-                            }}</h1>
-                        <h3 class="subtitle" v-if="selectedParticipant && selectedParticipant.event">
-                            Seat: {{ selectedParticipant.event.seat_id ? `CENTER-00${selectedParticipant.event.seat_id}`
-                            : 'Not Assigned' }}
-                        </h3>
-                        <h3 class="subtitle" v-else>Select a participant to view seat information</h3>
+                                    <div class="participant-details">
+                                        <h3 class="title has-text-centered"
+                                            v-if="selectedParticipant && selectedParticipant.event">
+                                            {{ selectedParticipant.event?.seat?.name ?
+                                                `${selectedParticipant.event?.seat?.name}` : 'Not Assigned' }}
+                                        </h3>
+                                        <h3 class="subtitle" v-else>Select a participant to view seat information</h3>
 
-                        <VFlex column-gap="8px" justify-content="center">
-                            <VTag :color="selectedStatus === 'Present' ? 'success' : 'warning'">
-                                <VIcon icon="lucide:user-check" />
-                                <span class="ml-3">{{ selectedStatus || 'Not Checked In' }}</span>
-                            </VTag>
-                            <VTag :color="present !== '-' ? 'info' : 'light'">
-                                <VIcon icon="lucide:clock" />
-                                <span class="ml-3">{{ present || '-' }}</span>
-                            </VTag>
-                        </VFlex>
+                                        <VFlex column-gap="8px" justify-content="center">
+                                            <VTag :color="selectedStatus === 'Present' ? 'success' : 'warning'">
+                                                <VIcon icon="lucide:user-check" />
+                                                <span class="ml-3">{{ selectedStatus || 'Not Checked In' }}</span>
+                                            </VTag>
+                                            <VTag :color="present !== '-' ? 'info' : 'light'">
+                                                <VIcon icon="lucide:clock" />
+                                                <span class="ml-3">{{ present || '-' }}</span>
+                                            </VTag>
+                                        </VFlex>
+                                    </div>
+
+                                    <div class="event-date">
+                                        <h3>4 Maret 2025</h3>
+                                    </div>
+                                </div>
+
+                                <div class="event-image-container" >
+                                    <img src="/images/event/layout/text-meeting.png" class="event-name" :class="isFullscreen && 'is-fullscreen'" alt="">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="column">
+
+                        </div>
                     </div>
                 </template>
             </VCardAdvanced>
@@ -498,6 +521,107 @@ onMounted(() => {
 <style lang="scss" scoped>
 .gap-20 {
     gap: 20px;
+}
+
+.columns-participant {
+    margin-inline-start: 30px;
+}
+
+.meeting-info-card {
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.participant-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    margin-top: 20px;
+}
+
+.participant-name-container {
+    background-color: #f5f0e1;
+    border: 2px solid #c8b69b;
+    border-radius: 20px;
+    padding: 10px 20px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.participant-name {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+    word-wrap: break-word;
+}
+
+.event-image-container {
+    align-self: flex-end;
+    width: 100%;
+    margin-top: auto;
+}
+
+.info-display-area {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.event-date {
+    align-self: center;
+    background-color: #f5f0e1;
+    border: 2px solid #c8b69b;
+    border-radius: 10px;
+    padding: 8px 15px;
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-top: 10px;
+    margin-bottom: 70px;
+    width: 60%;
+    text-align: center;
+}
+
+.event-title {
+    font-family: 'Brush Script MT', cursive;
+    font-size: 4rem;
+    color: #333;
+    transform: rotate(-5deg);
+    margin-top: 20px;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.participant-details {
+    background-color: #f5f0e1;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin: 20px 0;
+    
+    .title {
+        font-size: 50px;
+    }
+}
+
+.event-name {
+    width: 100%;
+    height: auto;
+    max-height: 100px;
+    object-fit: contain;
+
+    &.is-fullscreen {
+        margin-bottom: 50px;
+    }
 }
 
 .button-dropdown {
@@ -550,18 +674,13 @@ onMounted(() => {
                 align-items: center;
                 justify-content: center;
                 height: calc(100vh - 60px); // Adjust based on header height
-
-                img {
-                    max-height: 80vh;
-                    width: auto;
-                }
             }
         }
     }
-    
+
     &.is-display-only {
         margin-top: 0;
-        
+
         .card-seating {
             :deep(.card-head) {
                 // Make header smaller in display mode
@@ -575,5 +694,41 @@ onMounted(() => {
             border-bottom: none;
         }
     }
+}
+
+.fullscreen-prompt {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    cursor: pointer;
+
+    .fullscreen-message {
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+
+        h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #333;
+        }
+    }
+}
+
+.seating-area {
+    background-color: #f5f0e1;
+    border: 2px solid #c8b69b;
+    border-radius: 8px;
+    height: 100%;
+    position: relative;
 }
 </style>
