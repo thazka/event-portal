@@ -25,12 +25,14 @@ interface Doorprize {
 
 const pageTitle = useVueroContext<string>('page-title')
 
+const { participants } = useParticipants()
+const { doorprize } = useDoorprize()
+
 const searchParticipants = ref('')
 const multipleDoorprizesPerWinner = ref(false)
 const currentDoorprize = ref<Doorprize | null>(null)
 const isFullscreen = ref(false)
-const { doorprize } = useDoorprize()
-const { participants } = useParticipants()
+const drawingWrapperRef = ref<HTMLElement | null>(null)
 
 // Fetch doorprizes from API
 const fetchDoorprizes = async () => {
@@ -39,8 +41,6 @@ const fetchDoorprizes = async () => {
             offset: 999
         })
 
-        // Initialize participants array for each doorprize if not present
-        // And set default total_winner to 10 if not specified
         doorprize.data.forEach(prize => {
             if (!prize.participants) {
                 prize.participants = [];
@@ -122,20 +122,30 @@ const handleWinnerSelected = (winner: Participant, shouldEliminate: boolean = tr
 }
 
 const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(e => {
-            console.error(`Error attempting to enable fullscreen: ${e.message}`)
-        })
-        isFullscreen.value = true
+    isFullscreen.value = !isFullscreen.value
+
+    if (isFullscreen.value) {
+        const element = document.querySelector('.drawing-wrapper')
+        if (element) {
+            if (element.requestFullscreen) {
+                element.requestFullscreen()
+            } else if ((element as any).webkitRequestFullscreen) {
+                (element as any).webkitRequestFullscreen()
+            } else if ((element as any).msRequestFullscreen) {
+                (element as any).msRequestFullscreen()
+            }
+        }
     } else {
         if (document.exitFullscreen) {
             document.exitFullscreen()
-            isFullscreen.value = false
+        } else if ((document as any).webkitExitFullscreen) {
+            (document as any).webkitExitFullscreen()
+        } else if ((document as any).msExitFullscreen) {
+            (document as any).msExitFullscreen()
         }
     }
 }
 
-// Get the remaining winners count for a doorprize
 const getRemainingWinners = (prize: Doorprize) => {
     const currentWinners = prize.participants ? prize.participants.length : 0;
     const maxWinners = prize.total_winner || 0;
@@ -149,14 +159,15 @@ onMounted(() => {
         offset: 999
     })
 
-    // Listen for fullscreen change events
-    document.addEventListener('fullscreenchange', () => {
-        isFullscreen.value = !!document.fullscreenElement
-    })
+    setupFullscreenListeners()
 })
 
 onUnmounted(() => {
     document.removeEventListener('fullscreenchange', () => { })
+    document.removeEventListener('webkitfullscreenchange', () => { })
+    document.removeEventListener('mozfullscreenchange', () => { })
+    document.removeEventListener('MSFullscreenChange', () => { })
+    document.removeEventListener('keydown', () => { })
 })
 
 useHead({
@@ -165,46 +176,10 @@ useHead({
 </script>
 
 <template>
-    <div class="drawing-wrapper" :class="{ 'is-fullscreen': isFullscreen }">
-        <!-- <VCard radius="smooth" class="participants-area">
-            <div class="card-head">
-                <VField class="mb-0">
-                    <VControl>
-                        <VSwitchBlock color="primary" label="Allow multiple doorprizes per winner"
-                            v-model="multipleDoorprizesPerWinner" />
-                    </VControl>
-                </VField>
-            </div>
-
-            <VField class="my-2">
-                <VControl>
-                    <VInput v-model="searchParticipants" type="text" placeholder="Search participants" />
-                </VControl>
-            </VField>
-
-            <div class="card-body">
-                <div class="participant-header">
-                    <span class="participant-number">No</span>
-                    <span class="participant-name">Participant's Name</span>
-                </div>
-                <div class="participants-list">
-                    <div v-for="(participant, index) in filteredParticipants" :key="participant.id"
-                        class="participant-item" :class="{ 'is-selected': participant.selected }">
-                        <span class="participant-number">{{ index + 1 }}</span>
-                        <span class="participant-name">{{ participant.name }}</span>
-                    </div>
-
-                    <div v-if="filteredParticipants.length === 0" class="empty-participants">
-                        <p>No participants available</p>
-                        <p v-if="searchParticipants" class="hint">Try changing your search criteria</p>
-                        <p v-else-if="!multipleDoorprizesPerWinner && participants.data.length > 0" class="hint">
-                            All participants have been selected.<br>
-                            Enable "Allow multiple doorprizes per winner" to reuse participants.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </VCard> -->
+    <div ref="drawingWrapperRef" class="drawing-wrapper">
+        <div class="fullscreen-button" @click="toggleFullscreen">
+            <i class="fas" :class="isFullscreen ? 'fa-compress' : 'fa-expand'"></i>
+        </div>
 
         <VCard radius="smooth" class="prize-display-area">
             <div class="prize-image" v-if="currentDoorprize">
@@ -221,52 +196,6 @@ useHead({
                     @next-doorprize="nextDoorprize" />
             </div>
         </VCard>
-
-        <!-- <VCard radius="smooth" class="doorprize-area">
-            <div class="is-flex is-align-items-center is-justify-content-space-between mb-3">
-                <h3 class="title is-6 mb-0">Doorprize List</h3>
-                <VButton icon="material-symbols:fullscreen" @click="toggleFullscreen">
-                    {{ isFullscreen ? 'Exit Fullscreen' : 'Fullscreen' }}
-                </VButton>
-            </div>
-            <div class="doorprize-list">
-                <div v-for="prize in doorprize.data" :key="prize.id" class="doorprize-item" :class="{
-                    'is-active': currentDoorprize?.id === prize.id,
-                    'is-complete': prize.participants && prize.participants.length >= prize.total_winner
-                }" @click="selectDoorprize(prize)">
-                    <img :src="prize.photo" :alt="prize.name" />
-                    <div class="prize-info">
-                        <h4>{{ prize.name }}</h4>
-
-                        <div class="winner-progress">
-                            <span class="progress-badge" :class="{
-                                'is-complete': prize.participants && prize.participants.length >= prize.total_winner,
-                                'has-winners': prize.participants && prize.participants.length > 0
-                            }">
-                                {{ prize.participants ? prize.participants.length : 0 }} / {{ prize.total_winner }}
-                            </span>
-                            <span class="progress-text">
-                                <template v-if="prize.participants && prize.participants.length >= prize.total_winner">
-                                    Complete
-                                </template>
-                                <template v-else-if="prize.participants && prize.participants.length > 0">
-                                    {{ getRemainingWinners(prize) }} remaining
-                                </template>
-                                <template v-else>
-                                    No winners yet
-                                </template>
-                            </span>
-                        </div>
-
-                        <div class="winners-list" v-if="prize.participants && prize.participants.length > 0">
-                            <span v-for="(w, i) in prize.participants" :key="w.id">
-                                {{ w.name }}<span v-if="i < prize.participants.length - 1">, </span>
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </VCard> -->
     </div>
 </template>
 
@@ -509,6 +438,33 @@ useHead({
                     }
                 }
             }
+        }
+    }
+
+
+    .fullscreen-button {
+        position: absolute;
+        top: 90px;
+        right: 20px;
+        background-color: rgba(255, 255, 255, 0.7);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 100;
+        transition: all 0.3s ease;
+
+        &:hover {
+            background-color: rgba(255, 255, 255, 0.9);
+            transform: scale(1.1);
+        }
+
+        i {
+            font-size: 1.2rem;
+            color: #333;
         }
     }
 }
