@@ -373,13 +373,88 @@ onMounted(() => {
     })
 })
 
+const imagesText = computed(() => {
+    if (selectedEvent.value == 1) {
+        return '/images/event/layout/text-meeting.png'
+    } else {
+        return '/images/event/layout/text-gala-dinner.png'
+    }
+})
+
 // Cleanup
-onUnmounted(() => {
-    window.removeEventListener('storage', handleStorageChange)
-    document.removeEventListener('fullscreenchange', handleFullscreenChange)
-    document.removeEventListener('webkitfullscreenchange', handleFullscreenChange)
-    document.removeEventListener('mozfullscreenchange', handleFullscreenChange)
-    document.removeEventListener('MSFullscreenChange', handleFullscreenChange)
+onMounted(() => {
+    // Check URL parameters to determine if this is display mode
+    const urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.get('display') === 'true') {
+        isDisplayOnly.value = true
+
+        // Hide the toolbar in display mode
+        const toolbarElement = document.querySelector('.toolbar-event')
+        if (toolbarElement) {
+            (toolbarElement as HTMLElement).style.display = 'none'
+        }
+
+        // Check if there's a currently selected event in localStorage
+        const currentEventId = localStorage.getItem('currentSelectedEvent')
+        if (currentEventId) {
+            selectedEvent.value = parseInt(currentEventId)
+        }
+
+        // Add instructions for user to click to enter fullscreen
+        setTimeout(() => {
+            const cardContent = document.querySelector('.card-seating .card-content')
+            if (cardContent) {
+                const overlay = document.createElement('div')
+                overlay.className = 'fullscreen-prompt'
+                overlay.innerHTML = `
+                    <div class="fullscreen-message">
+                        <h2>Click anywhere to enter fullscreen</h2>
+                    </div>
+                `
+                overlay.addEventListener('click', () => {
+                    toggleFullscreen()
+                    overlay.remove()
+                })
+                cardContent.prepend(overlay)
+            }
+        }, 500)
+    }
+
+    // Add event listener for storage events
+    window.addEventListener('storage', handleStorageChange)
+
+    // Add event listener for fullscreen changes
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange)
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange)
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange)
+
+    fetchEventParticipants({ offset: 999, event_id: selectedEvent.value }).then(() => {
+        // After initial data is loaded, check for query parameters or session storage
+        // to restore previous selection if needed
+
+        // If this is display mode, check if there's a currently selected participant in localStorage
+        if (isDisplayOnly.value) {
+            const currentParticipantJson = localStorage.getItem('currentSelectedParticipant')
+            if (currentParticipantJson) {
+                const currentParticipant = JSON.parse(currentParticipantJson)
+                // Find this participant in our data
+                const participant = participants.data.find((p: any) => p.id === currentParticipant.id)
+                if (participant) {
+                    selectParticipant(participant)
+                }
+            }
+        } else {
+            // Regular session restore logic
+            const storedParticipantId = sessionStorage.getItem('selectedParticipantId')
+            if (storedParticipantId) {
+                const participant = participants.data.find((p: any) => p.id.toString() === storedParticipantId)
+                if (participant) {
+                    selectParticipant(participant)
+                }
+            }
+        }
+    })
 })
 </script>
 
@@ -504,13 +579,12 @@ onUnmounted(() => {
                                 </div>
 
                                 <div class="event-image-container" >
-                                    <img src="/images/event/layout/text-meeting.png" class="event-name" :class="isFullscreen && 'is-fullscreen'" alt="">
+                                    <img :src="imagesText" class="event-name" :class="isFullscreen && 'is-fullscreen'" alt="">
                                 </div>
+
                             </div>
                         </div>
-                        <div class="column">
-
-                        </div>
+                        <div class="column"></div>
                     </div>
                 </template>
             </VCardAdvanced>

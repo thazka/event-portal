@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import { fetchDoorprize } from '/@src/composables/event/useDoorprize'
 import { useDoorprize } from '/@src/stores/event/doorprize'
 import { useParticipants } from '/@src/stores/event/participants'
@@ -32,14 +32,31 @@ const isFullscreen = ref(false)
 const { doorprize } = useDoorprize()
 const { participants } = useParticipants()
 
-// Mock API call to fetch doorprizes
+// Fetch doorprizes from API
 const fetchDoorprizes = async () => {
-    fetchDoorprize({
-        offset: 999
-    })
-    
-    if (doorprize.data.length > 0 && !currentDoorprize.value) {
-        currentDoorprize.value = doorprize.data[0]
+    try {
+        await fetchDoorprize({
+            offset: 999
+        })
+
+        // Initialize participants array for each doorprize if not present
+        // And set default total_winner to 10 if not specified
+        doorprize.data.forEach(prize => {
+            if (!prize.participants) {
+                prize.participants = [];
+            }
+
+            // Set default total_winner to 10 if it's 1 or not specified
+            if (!prize.total_winner || prize.total_winner === 1) {
+                prize.total_winner = 10;
+            }
+        });
+
+        if (doorprize.data.length > 0 && !currentDoorprize.value) {
+            currentDoorprize.value = doorprize.data[0]
+        }
+    } catch (error) {
+        console.error('Error fetching doorprizes:', error)
     }
 }
 
@@ -61,11 +78,12 @@ const filteredParticipants = computed(() => {
 
 const isAllWinnersSelected = computed(() => {
     if (!currentDoorprize.value) return false;
-    const currentWinners = currentDoorprize.value.participants ? 
-                          currentDoorprize.value.participants.length : 0;
+    const currentWinners = currentDoorprize.value.participants ?
+        currentDoorprize.value.participants.length : 0;
     const maxWinners = currentDoorprize.value.total_winner || 0;
     return currentWinners >= maxWinners;
 });
+
 const selectDoorprize = (doorprize: Doorprize) => {
     currentDoorprize.value = doorprize
 }
@@ -75,6 +93,9 @@ const nextDoorprize = () => {
     const currentIndex = doorprize.data.findIndex(d => d.id === currentDoorprize.value?.id)
     if (currentIndex < doorprize.data.length - 1) {
         currentDoorprize.value = doorprize.data[currentIndex + 1]
+    } else if (doorprize.data.length > 0) {
+        // Loop back to the first doorprize
+        currentDoorprize.value = doorprize.data[0]
     }
 }
 
@@ -94,6 +115,8 @@ const handleWinnerSelected = (winner: Participant, shouldEliminate: boolean = tr
         if (!currentDoorprize.value.participants) {
             currentDoorprize.value.participants = [];
         }
+
+        // Add winner to the doorprize participants list
         currentDoorprize.value.participants.push({ ...winner });
     }
 }
@@ -110,6 +133,13 @@ const toggleFullscreen = () => {
             isFullscreen.value = false
         }
     }
+}
+
+// Get the remaining winners count for a doorprize
+const getRemainingWinners = (prize: Doorprize) => {
+    const currentWinners = prize.participants ? prize.participants.length : 0;
+    const maxWinners = prize.total_winner || 0;
+    return Math.max(0, maxWinners - currentWinners);
 }
 
 onMounted(() => {
@@ -136,22 +166,19 @@ useHead({
 
 <template>
     <div class="drawing-wrapper" :class="{ 'is-fullscreen': isFullscreen }">
-        <!-- Side kiri: Daftar Peserta -->
-        <VCard radius="smooth" class="participants-area">
+        <!-- <VCard radius="smooth" class="participants-area">
             <div class="card-head">
-                <!-- Switch multiple doorprizes -->
                 <VField class="mb-0">
                     <VControl>
-                        <VSwitchBlock color="primary" label="1 winner/doorprize"
+                        <VSwitchBlock color="primary" label="Allow multiple doorprizes per winner"
                             v-model="multipleDoorprizesPerWinner" />
                     </VControl>
                 </VField>
             </div>
 
-            <!-- Search box -->
             <VField class="my-2">
                 <VControl>
-                    <VInput v-model="searchParticipants" type="text" placeholder="Search" />
+                    <VInput v-model="searchParticipants" type="text" placeholder="Search participants" />
                 </VControl>
             </VField>
 
@@ -166,11 +193,19 @@ useHead({
                         <span class="participant-number">{{ index + 1 }}</span>
                         <span class="participant-name">{{ participant.name }}</span>
                     </div>
+
+                    <div v-if="filteredParticipants.length === 0" class="empty-participants">
+                        <p>No participants available</p>
+                        <p v-if="searchParticipants" class="hint">Try changing your search criteria</p>
+                        <p v-else-if="!multipleDoorprizesPerWinner && participants.data.length > 0" class="hint">
+                            All participants have been selected.<br>
+                            Enable "Allow multiple doorprizes per winner" to reuse participants.
+                        </p>
+                    </div>
                 </div>
             </div>
-        </VCard>
+        </VCard> -->
 
-        <!-- Tengah: Display Doorprize + Winner -->
         <VCard radius="smooth" class="prize-display-area">
             <div class="prize-image" v-if="currentDoorprize">
                 <img :src="currentDoorprize.photo" :alt="currentDoorprize.name" />
@@ -180,7 +215,6 @@ useHead({
                 </p>
             </div>
 
-            <!-- Area animasi/spinning -->
             <div class="winner-display">
                 <RollingAnimation :participants="filteredParticipants" :current-doorprize="currentDoorprize"
                     @winner-selected="handleWinnerSelected" :is-all-winners-selected="isAllWinnersSelected"
@@ -188,8 +222,7 @@ useHead({
             </div>
         </VCard>
 
-        <!-- Side kanan: List Doorprize -->
-        <VCard radius="smooth" class="doorprize-area">
+        <!-- <VCard radius="smooth" class="doorprize-area">
             <div class="is-flex is-align-items-center is-justify-content-space-between mb-3">
                 <h3 class="title is-6 mb-0">Doorprize List</h3>
                 <VButton icon="material-symbols:fullscreen" @click="toggleFullscreen">
@@ -197,17 +230,35 @@ useHead({
                 </VButton>
             </div>
             <div class="doorprize-list">
-                <div v-for="prize in doorprize.data" :key="prize.id" class="doorprize-item"
-                    :class="{ 'is-active': currentDoorprize?.id === prize.id }" @click="selectDoorprize(prize)">
+                <div v-for="prize in doorprize.data" :key="prize.id" class="doorprize-item" :class="{
+                    'is-active': currentDoorprize?.id === prize.id,
+                    'is-complete': prize.participants && prize.participants.length >= prize.total_winner
+                }" @click="selectDoorprize(prize)">
                     <img :src="prize.photo" :alt="prize.name" />
                     <div class="prize-info">
                         <h4>{{ prize.name }}</h4>
-                        <!-- Display winners information -->
-                        <p v-if="prize.participants.length === 0">No Winners Yet</p>
-                        <p v-else>
-                            {{ prize.participants.length }} / {{ prize.total_winner }} Winner(s)
-                        </p>
-                        <div class="winners-list" v-if="prize.participants.length > 0">
+
+                        <div class="winner-progress">
+                            <span class="progress-badge" :class="{
+                                'is-complete': prize.participants && prize.participants.length >= prize.total_winner,
+                                'has-winners': prize.participants && prize.participants.length > 0
+                            }">
+                                {{ prize.participants ? prize.participants.length : 0 }} / {{ prize.total_winner }}
+                            </span>
+                            <span class="progress-text">
+                                <template v-if="prize.participants && prize.participants.length >= prize.total_winner">
+                                    Complete
+                                </template>
+                                <template v-else-if="prize.participants && prize.participants.length > 0">
+                                    {{ getRemainingWinners(prize) }} remaining
+                                </template>
+                                <template v-else>
+                                    No winners yet
+                                </template>
+                            </span>
+                        </div>
+
+                        <div class="winners-list" v-if="prize.participants && prize.participants.length > 0">
                             <span v-for="(w, i) in prize.participants" :key="w.id">
                                 {{ w.name }}<span v-if="i < prize.participants.length - 1">, </span>
                             </span>
@@ -215,7 +266,7 @@ useHead({
                     </div>
                 </div>
             </div>
-        </VCard>
+        </VCard> -->
     </div>
 </template>
 
@@ -287,6 +338,22 @@ useHead({
 
                     .participant-name {
                         flex-grow: 1;
+                    }
+                }
+
+                .empty-participants {
+                    padding: 30px 20px;
+                    text-align: center;
+                    color: #666;
+
+                    p {
+                        margin: 0;
+
+                        &.hint {
+                            font-size: 0.85rem;
+                            color: #999;
+                            margin-top: 8px;
+                        }
                     }
                 }
             }
@@ -379,10 +446,16 @@ useHead({
                     background-color: var(--primary-light);
                 }
 
+                &.is-complete {
+                    border-color: #10b981;
+                    background-color: rgba(16, 185, 129, 0.1);
+                }
+
                 img {
                     width: 60px;
                     height: 60px;
                     object-fit: cover;
+                    border-radius: 6px;
                 }
 
                 .prize-info {
@@ -394,10 +467,36 @@ useHead({
                         font-weight: 600;
                     }
 
-                    p {
-                        margin: 0;
-                        font-size: 0.875rem;
-                        color: #666;
+                    .winner-progress {
+                        display: flex;
+                        align-items: center;
+                        margin: 5px 0;
+
+                        .progress-badge {
+                            display: inline-block;
+                            background-color: #f3f4f6;
+                            color: #4b5563;
+                            padding: 2px 8px;
+                            border-radius: 12px;
+                            font-size: 0.75rem;
+                            font-weight: 600;
+
+                            &.has-winners {
+                                background-color: #3b82f6;
+                                color: white;
+                            }
+
+                            &.is-complete {
+                                background-color: #10b981;
+                                color: white;
+                            }
+                        }
+
+                        .progress-text {
+                            margin-left: 8px;
+                            font-size: 0.75rem;
+                            color: #6b7280;
+                        }
                     }
 
                     .winners-list {

@@ -48,16 +48,15 @@ const showWinnerModal = ref(false);
 const winnerDetails = ref<Participant | null>(null);
 const forceStopTriggered = ref(false);
 const elapsedBeforeStop = ref(0);
+const spinAudio = ref<HTMLAudioElement | null>(null);
+const winAudio = ref<HTMLAudioElement | null>(null);
 
-// Control the speed of animation based on time elapsed
 const getSpeedFactor = (elapsed: number) => {
     const normalizedTime = elapsed / SPIN_DURATION;
-    
+
     if (forceStopTriggered.value) {
-        // Start slowing down immediately when stop is triggered
         const remainingTime = Math.min(1.0, normalizedTime + 0.2); // Advance progress to simulate quick slowdown
-        
-        // Calculate a gradually decreasing speed
+
         if (remainingTime > 0.95) {
             return 10; // Very slow at the end
         } else if (remainingTime > 0.9) {
@@ -68,15 +67,56 @@ const getSpeedFactor = (elapsed: number) => {
             return MAX_SPEED * (1 - Math.pow(remainingTime, 2)); // Gradually slow down
         }
     }
-    
-    // Normal speed curve without force stop
+
     if (normalizedTime < SLOWDOWN_POINT) {
-        // Accelerate until reaching SLOWDOWN_POINT
         return INITIAL_SPEED + (MAX_SPEED - INITIAL_SPEED) * (normalizedTime / SLOWDOWN_POINT);
     } else {
-        // Decelerate after SLOWDOWN_POINT
         const slowdownPhase = (normalizedTime - SLOWDOWN_POINT) / (1 - SLOWDOWN_POINT);
         return MAX_SPEED * (1 - Math.pow(slowdownPhase, 2));
+    }
+};
+
+const initSoundEffects = () => {
+    spinAudio.value = new Audio('/sounds/spinning.mp3');
+    winAudio.value = new Audio('/sounds/winner.mp3');
+
+    // Configure audio settings
+    if (spinAudio.value) {
+        spinAudio.value.loop = true;
+        spinAudio.value.volume = 0.7;
+    }
+
+    if (winAudio.value) {
+        winAudio.value.loop = false;
+        winAudio.value.volume = 1.0;
+    }
+};
+
+// Play spin sound
+const playSpinSound = () => {
+    if (spinAudio.value) {
+        spinAudio.value.currentTime = 0;
+        spinAudio.value.play().catch(err => {
+            console.warn('Audio playback was prevented by browser:', err);
+        });
+    }
+};
+
+// Stop spin sound
+const stopSpinSound = () => {
+    if (spinAudio.value && !spinAudio.value.paused) {
+        spinAudio.value.pause();
+        spinAudio.value.currentTime = 0;
+    }
+};
+
+// Play win sound
+const playWinSound = () => {
+    if (winAudio.value) {
+        winAudio.value.currentTime = 0;
+        winAudio.value.play().catch(err => {
+            console.warn('Audio playback was prevented by browser:', err);
+        });
     }
 };
 
@@ -87,7 +127,7 @@ const animate = (timestamp: number) => {
     }
 
     let elapsed = timestamp - startTime.value;
-    
+
     // When force stopping, we add time to make it reach the end faster
     if (forceStopTriggered.value && elapsedBeforeStop.value === 0) {
         elapsedBeforeStop.value = elapsed;
@@ -101,7 +141,7 @@ const animate = (timestamp: number) => {
     }
 
     const speedFactor = getSpeedFactor(elapsed);
-    
+
     // Calculate which participant is selected
     if (elapsed < SPIN_DURATION && props.participants.length > 0) {
         currentPosition.value = (currentPosition.value + speedFactor) % listHeight.value;
@@ -118,6 +158,11 @@ const animate = (timestamp: number) => {
             const winner = props.participants[selectedIndex.value];
             displayName.value = winner.name;
             winnerDetails.value = winner;
+
+            // Stop spinning sound and play winning sound
+            stopSpinSound();
+            playWinSound();
+
             showWinnerModal.value = true;
             isSpinning.value = false;
             forceStopTriggered.value = false;
@@ -129,7 +174,7 @@ const animate = (timestamp: number) => {
 // Setup dimensions of the spinner
 const setupDimensions = () => {
     if (!containerRef.value || props.participants.length === 0) return;
-    
+
     const item = containerRef.value.children[0] as HTMLElement;
     if (item) {
         itemHeight.value = item.offsetHeight;
@@ -142,8 +187,8 @@ const startSpin = () => {
     if (isSpinning.value || !props.currentDoorprize) return;
 
     // Get the latest counts for accurate comparison
-    const currentWinners = props.currentDoorprize.participants ? 
-                        props.currentDoorprize.participants.length : 0;
+    const currentWinners = props.currentDoorprize.participants ?
+        props.currentDoorprize.participants.length : 0;
     const maxWinners = props.currentDoorprize.total_winner || 0;
 
     // Check if doorprize can have more winners
@@ -164,6 +209,10 @@ const startSpin = () => {
     currentPosition.value = 0;
     forceStopTriggered.value = false;
     elapsedBeforeStop.value = 0;
+
+    // Play the spinning sound
+    playSpinSound();
+
     animationFrame.value = requestAnimationFrame(animate);
 };
 
@@ -178,23 +227,23 @@ const forceStop = () => {
 const handleWinnerDecision = (eliminate: boolean) => {
     if (winnerDetails.value && props.currentDoorprize) {
         emit('winner-selected', winnerDetails.value, eliminate);
-        
+
         // Close the modal
         showWinnerModal.value = false;
         winnerDetails.value = null;
-        
-        // Only suggest moving to next doorprize if we've reached max winners
-        const currentWinners = props.currentDoorprize.participants ? 
-                              props.currentDoorprize.participants.length : 0;
-        const maxWinners = props.currentDoorprize.total_winner || 0;
-        
-        if (eliminate && currentWinners >= maxWinners) {
-            // Ask if the user wants to move to the next doorprize
-            if (confirm(`You've selected all ${maxWinners} winners for this doorprize. Move to the next doorprize?`)) {
-                emit('next-doorprize');
+
+        // Check if we've reached max winners for this doorprize
+        if (props.currentDoorprize.participants) {
+            const currentWinners = props.currentDoorprize.participants.length + (eliminate ? 1 : 0);
+            const maxWinners = props.currentDoorprize.total_winner || 0;
+
+            if (eliminate && currentWinners >= maxWinners) {
+                // Ask if the user wants to move to the next doorprize
+                if (confirm(`You've selected all ${maxWinners} winners for this doorprize. Move to the next doorprize?`)) {
+                    emit('next-doorprize');
+                }
             }
         }
-        // Reset for next spin immediately if we haven't reached max winners
     }
 };
 
@@ -202,6 +251,17 @@ const moveToNextDoorprize = () => {
     showWinnerModal.value = false;
     winnerDetails.value = null;
     emit('next-doorprize');
+};
+
+// Get the remaining winners count
+const getRemainingWinners = () => {
+    if (!props.currentDoorprize) return 0;
+
+    const currentWinners = props.currentDoorprize.participants ?
+        props.currentDoorprize.participants.length : 0;
+    const maxWinners = props.currentDoorprize.total_winner || 0;
+
+    return Math.max(0, maxWinners - currentWinners);
 };
 
 // Update display when props change
@@ -216,7 +276,7 @@ watch(() => props.currentDoorprize, () => {
 // Watch for changes in participants
 watch(() => props.participants, () => {
     setupDimensions();
-    
+
     if (props.participants.length > 0) {
         displayName.value = props.participants[0].name;
     } else {
@@ -226,24 +286,37 @@ watch(() => props.participants, () => {
 
 onMounted(() => {
     setupDimensions();
+    initSoundEffects();
 });
 
 onUnmounted(() => {
     if (animationFrame.value) {
         cancelAnimationFrame(animationFrame.value);
     }
+    stopSpinSound();
 });
 </script>
 
 <template>
     <div class="spinner-container">
+        <!-- Winner count display -->
+        <!-- <div class="winner-count-display" v-if="currentDoorprize">
+            <div class="winner-count-badge">
+                <span class="current">{{ currentDoorprize.participants ? currentDoorprize.participants.length : 0
+                    }}</span>
+                <span class="divider">/</span>
+                <span class="total">{{ currentDoorprize.total_winner }}</span>
+            </div>
+            <div class="winner-count-label">Winners Selected</div>
+        </div> -->
+
         <!-- The spinning display window -->
         <div class="spinner-window">
             <!-- Static display when not spinning -->
             <div class="display-name" v-if="!isSpinning">
                 {{ displayName }}
             </div>
-            
+
             <!-- Animated content when spinning -->
             <div ref="containerRef" class="spinner-content" :class="{ 'is-spinning': isSpinning }" :style="{
                 transform: `translateY(${-currentPosition}px)`,
@@ -253,31 +326,32 @@ onUnmounted(() => {
                     {{ participant.name }}
                 </div>
             </div>
-            
+
             <!-- Visual highlight for the current selection -->
             <div class="spinner-highlight" v-if="isSpinning"></div>
         </div>
-        
+
         <!-- Action buttons -->
         <div class="action-buttons mt-5">
             <template v-if="!isSpinning">
-                <VButton 
-                    color="primary" 
-                    :disabled="isAllWinnersSelected || !currentDoorprize || participants.length === 0" 
-                    @click="startSpin"
-                >
-                    {{ currentDoorprize?.participants.length ? 'Spin Next Winner' : 'Spin First Winner' }}
+                <VButton color="primary"
+                    :disabled="isAllWinnersSelected || !currentDoorprize || participants.length === 0"
+                    @click="startSpin">
+                    <span v-if="!currentDoorprize?.participants || currentDoorprize.participants.length === 0">Spin
+                        First Winner</span>
+                    <span v-else-if="getRemainingWinners() > 0">
+                        Spin Next Winner ({{ getRemainingWinners() }} remaining)
+                    </span>
+                    <span v-else>All Winners Selected</span>
                 </VButton>
-                
-                <VButton 
-                    color="info" 
-                    :disabled="!currentDoorprize || currentDoorprize.participants.length === 0" 
-                    @click="moveToNextDoorprize"
-                >
+
+                <VButton color="info"
+                    :disabled="!currentDoorprize || (!currentDoorprize.participants || currentDoorprize.participants.length === 0)"
+                    @click="moveToNextDoorprize">
                     Next Doorprize
                 </VButton>
             </template>
-            
+
             <template v-else>
                 <VButton color="danger" @click="forceStop">
                     Stop
@@ -285,17 +359,11 @@ onUnmounted(() => {
             </template>
         </div>
     </div>
-    
+
     <!-- Winner Modal using separate component -->
-    <WinnerModal
-        :is-open="showWinnerModal"
-        :winner="winnerDetails"
-        :doorprize="currentDoorprize"
-        @close="showWinnerModal = false"
-        @confirm-winner="handleWinnerDecision(true)"
-        @eliminate="handleWinnerDecision(false)"
-        @next-doorprize="moveToNextDoorprize"
-    />
+    <WinnerModal :is-open="showWinnerModal" :winner="winnerDetails" :doorprize="currentDoorprize"
+        @close="showWinnerModal = false" @confirm-winner="handleWinnerDecision(true)"
+        @eliminate="handleWinnerDecision(false)" @next-doorprize="moveToNextDoorprize" />
 </template>
 
 <style lang="scss" scoped>
@@ -308,6 +376,43 @@ onUnmounted(() => {
     background: white;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.winner-count-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 15px;
+
+    .winner-count-badge {
+        background: linear-gradient(135deg, #6366f1, #4f46e5);
+        color: white;
+        padding: 6px 16px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 1.2rem;
+        display: flex;
+
+        .current {
+            font-size: 1.5rem;
+        }
+
+        .divider {
+            margin: 0 4px;
+            opacity: 0.7;
+            font-size: 20px;
+        }
+
+        .total {
+            font-size: 1.5rem;
+        }
+    }
+
+    .winner-count-label {
+        font-size: 0.9rem;
+        color: #666;
+        margin-top: 5px;
+    }
 }
 
 .action-buttons {

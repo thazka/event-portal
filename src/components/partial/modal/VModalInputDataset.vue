@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, withDefaults, defineEmits, defineProps, computed } from 'vue'
 import { useNotyf } from '/@src/composables/notyf'
-import { importParticipant } from '/@src/composables/event/useParticipants'
+import { fetchEventParticipants, importParticipant } from '/@src/composables/event/useParticipants'
+import { fetchEventAnalytics, fetchLayoutEvent } from '/@src/composables/event/useAnalytics'
+import { fetchSeatList } from '/@src/composables/event/useSeats'
 
 interface FileUploadProps {
     open: boolean
@@ -9,6 +11,7 @@ interface FileUploadProps {
     allowedFileTypes?: string[]
     onSuccess?: (data: any) => void
     onError?: (error: any) => void
+    filter?: any
 }
 
 const props = withDefaults(defineProps<FileUploadProps>(), {
@@ -16,7 +19,8 @@ const props = withDefaults(defineProps<FileUploadProps>(), {
     maxFileSize: 10 * 1024 * 1024,
     allowedFileTypes: () => ['.xls', '.xlsx'],
     onSuccess: undefined,
-    onError: undefined
+    onError: undefined,
+    filter: () => {}
 })
 
 const emit = defineEmits<{
@@ -169,6 +173,14 @@ const importParticipants = async () => {
         }
 
         setTimeout(() => {
+            Promise.all([
+                fetchEventParticipants(props.filter),
+                fetchEventAnalytics(props.filter?.event_id),
+                fetchSeatList({
+                    offset: 99
+                }),
+                fetchLayoutEvent(props.filter.event_id)
+            ])
             closeModal()
         }, 1000)
 

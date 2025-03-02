@@ -274,12 +274,16 @@ useHead({
 
         <VModalInputSeatLayout v-if="modalSeat" :open="modalSeat" :event-id="filter.event_id" @close="modalSeat = false"
             @upload="handleSeat" />
-        <VModalInputDataset :open="modalDataset" @close="modalDataset = false" />
+        <VModalInputDataset :open="modalDataset" :filter="filter" @close="modalDataset = false" />
 
     </div>
 </template>
 
 <style lang="scss" scoped>
+.empty-state {
+    font-size: 100px;
+}
+
 .toolbar-event {
     margin-bottom: 10px;
 
