@@ -121,6 +121,12 @@ const onDeleteSeat = (data: any) => {
     })
 }
 
+const changePage = (page: number) => {
+    filter.page = page
+
+    fetchSeatList(filter)
+}
+
 onMounted(() => {
     fetchSeatList(filter)
     pageTitle.value = 'Seat Management'
@@ -259,7 +265,7 @@ useHead({
         </div>
 
         <VFlexPagination v-if="processedData.length > 5" v-model:current-page="filter.page" :item-per-page="10"
-            :total-items="seatList.pagination.total" :max-links-displayed="7" no-router class="mt-4">
+            :total-items="seatList.pagination.total" :max-links-displayed="7" no-router class="mt-4" @update:currentPage="changePage">
             <template #before-pagination>
                 <VDropdown left donw class="mr-2">
                     <template #button="{ toggle, isOpen }">

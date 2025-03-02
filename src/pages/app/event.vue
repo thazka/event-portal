@@ -34,12 +34,16 @@ const isFullscreen = ref(false)
 // Flag to determine if this is the display window
 const isDisplayOnly = ref(false)
 
-// Computed property for filtered participants
 const filteredParticipants = computed(() => {
-    return participants.data.filter((participant: any) =>
-        participant.name.toLowerCase().includes(searchQuery.value.toLowerCase())
-    )
-})
+    return participants.data.filter((participant: any) => {
+        const nameMatch = participant.name &&
+            participant.name.toLowerCase().includes(searchQuery.value.toLowerCase());
+        const phoneMatch = participant.phone &&
+            participant.phone.includes(searchQuery.value.toLowerCase());
+
+        return nameMatch || phoneMatch;
+    });
+});
 
 const formatDateTime = (dateTimeString: string | null) => {
     if (!dateTimeString) return '-'
@@ -470,11 +474,11 @@ onMounted(() => {
                 </VField>
                 <VField label="Participant Name" class="has-fullwidth">
                     <VControl>
-                        <VDropdown modern class="has-fullwidth">
+                        <VDropdown modern class="has-fullwidth dropdown-participant">
                             <template #button="{ open, toggle, isOpen }">
                                 <VButton class="is-trigger has-fullwidth button-dropdown" @click="toggle">
                                     <span>{{ selectedParticipant ? selectedParticipant.name : 'Select Participant'
-                                        }}</span>
+                                    }}</span>
                                     <VIcon v-if="!isOpen" icon="fa6-solid:angle-down" />
                                     <VIcon v-else icon="fa6-solid:angle-up" />
                                 </VButton>
@@ -550,7 +554,7 @@ onMounted(() => {
                                 <div class="participant-content">
                                     <div class="participant-name-container">
                                         <h1 class="participant-name">{{ selectedParticipant ? selectedParticipant.name :
-                                            'No Participant Selected'}}</h1>
+                                            'No Participant Selected' }}</h1>
                                     </div>
 
                                     <div class="participant-details">
@@ -578,8 +582,9 @@ onMounted(() => {
                                     </div>
                                 </div>
 
-                                <div class="event-image-container" >
-                                    <img :src="imagesText" class="event-name" :class="isFullscreen && 'is-fullscreen'" alt="">
+                                <div class="event-image-container">
+                                    <img :src="imagesText" class="event-name" :class="isFullscreen && 'is-fullscreen'"
+                                        alt="">
                                 </div>
 
                             </div>
@@ -593,6 +598,15 @@ onMounted(() => {
 </template>
 
 <style lang="scss" scoped>
+.dropdown-participant {
+    :deep(.dropdown-menu) {
+        .dropdown-content {
+            max-height: 200px;
+            overflow: auto;
+        }
+    }
+}
+
 .gap-20 {
     gap: 20px;
 }
@@ -681,7 +695,7 @@ onMounted(() => {
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     margin: 20px 0;
-    
+
     .title {
         font-size: 50px;
     }

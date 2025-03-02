@@ -381,7 +381,7 @@ useHead({
             }
 
             .prize-name {
-                font-size: 1.5rem;
+                font-size: 3rem;
                 margin-top: 0;
                 margin-bottom: 0.5rem;
             }

@@ -62,16 +62,6 @@ const handleSelectSeat = async (userId: number, seatId: number) => {
         return
     }
 
-    const seatAlreadyAssigned = participants.data.some(participant =>
-        participant.event?.seat_id === seatId &&
-        participant.id !== userId
-    )
-
-    if (seatAlreadyAssigned) {
-        notyf.error('This seat is already assigned to another participant')
-        return
-    }
-
     try {
         await updateSeatParticipant(filter.event_id, userId, seatId)
 

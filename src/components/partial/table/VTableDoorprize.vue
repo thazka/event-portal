@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { fetchDoorprize, deleteDoorprize } from '/@src/composables/event/useDoorprize'
+import { fetchEventParticipants } from '/@src/composables/event/useParticipants'
 import { itemsPerPageOptions } from '/@src/data/options'
 import { useDoorprize } from '/@src/stores/event/doorprize'
+import { useParticipants } from '/@src/stores/event/participants'
 
 // Define interface for doorprize data based on the API response
 interface DoorprizeData {
@@ -19,12 +21,14 @@ interface DoorprizeData {
 const filter = reactive({
     search: '',
     page: 1,
-    offset: 10
+    offset: 10,
 })
 
 const router = useRouter()
 const notyf = useNotyf()
 const { doorprize } = useDoorprize()
+const { participants: visitor } = useParticipants()
+
 
 const sortColumn = ref<keyof DoorprizeData | null>(null)
 const sortDirection = ref<'asc' | 'desc' | null>(null)
@@ -161,7 +165,17 @@ const handleDelete = (id: number) => {
     })
 }
 
+const attendedParticipants = computed(() => {
+    return visitor.data.filter((participant: any) => {
+        return participant.events && Array.isArray(participant.events) &&
+            participant.events.some(event => event.attendance !== null);
+    });
+});
+
 onMounted(() => {
+    fetchEventParticipants({
+        offset: 999
+    })
     fetchDoorprize(filter)
 })
 
@@ -251,7 +265,7 @@ watch([() => filter.search, () => filter.page, () => filter.offset], () => {
                         <th>
                             <span class="is-flex is-align-items-center is-justify-content-space-between"
                                 @click="handleSort('total_winner')">
-                                <span class="is-align-items-center">Total Winner</span>
+                                <span class="is-align-items-center">Participant</span>
                                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
                                     xmlns="http://www.w3.org/2000/svg">
                                     <path
@@ -310,7 +324,7 @@ watch([() => filter.search, () => filter.page, () => filter.offset], () => {
                                 </td>
                                 <td>{{ item.name }}</td>
                                 <!-- <td>{{ item.id }}</td> -->
-                                <td>{{ item.total_winner }}</td>
+                                <td>{{ attendedParticipants?.length }}</td>
                                 <td>{{ getWinnerNames(item) }}</td>
                                 <td>
                                     <div class="is-flex" @click="handleDelete(item.id)">

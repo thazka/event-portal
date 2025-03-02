@@ -127,13 +127,6 @@ const processedData = computed(() => {
 })
 
 const handleSelectSeat = (userId: number, seatId: number) => {
-    // Validate if seat is already assigned
-    if (assignedSeats.value[seatId] && assignedSeats.value[seatId] !== userId) {
-        notyf.error(`This seat is already assigned to another participant`)
-        return
-    }
-
-    // Emit event for parent to handle
     emit('select-seat', userId, seatId)
 }
 
@@ -219,7 +212,7 @@ const formattedSeatList = computed(() => {
                         <th>
                             <span class="is-flex is-align-items-center is-justify-content-space-between"
                                 @click="handleSort('seat')">
-                                <span class="is-align-items-center">Seat</span>
+                                <span class="is-align-items-center">Table</span>
                                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none"
                                     xmlns="http://www.w3.org/2000/svg">
                                     <path
@@ -280,10 +273,9 @@ const formattedSeatList = computed(() => {
                                 <td>{{ user.company }}</td>
                                 <td>{{ user.phone }}</td>
                                 <td>
-                                    <!-- {{ formattedSeatList }} -->
                                     <VTag :id="`option-${index}`" :label="getSeatName(user) || 'Seat Unassigned'"
                                         :color="!getSeatName(user) ? 'danger' : 'success'" curved hasDropdown
-                                        :options="formattedSeatList" :disabledOptions="assignedSeats"
+                                        :options="formattedSeatList" 
                                         :currentUserId="user.id" searchPlaceholder="Search"
                                         @select="(seatId: number) => handleSelectSeat(user.id, seatId)" />
                                 </td>
