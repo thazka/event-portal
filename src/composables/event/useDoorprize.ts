@@ -53,3 +53,17 @@ export const deleteDoorprize = async (id: number) => {
         return error
     }
 }
+
+export const updateWinner = async (id: number, params: any) => {
+    try {
+        const { data } = await api.put(`/v1/doorprize/${id}/winner`, params)
+        
+        if (!data.status) {
+            throw new Error("Failed update winner");
+        }
+        
+        return data
+    } catch (error) {
+        return error   
+    }
+}

@@ -565,7 +565,7 @@ onMounted(() => {
                                         </h3>
                                         <h3 class="subtitle" v-else>Select a participant to view seat information</h3>
 
-                                        <VFlex column-gap="8px" justify-content="center">
+                                        <!-- <VFlex column-gap="8px" justify-content="center">
                                             <VTag :color="selectedStatus === 'Present' ? 'success' : 'warning'">
                                                 <VIcon icon="lucide:user-check" />
                                                 <span class="ml-3">{{ selectedStatus || 'Not Checked In' }}</span>
@@ -574,7 +574,7 @@ onMounted(() => {
                                                 <VIcon icon="lucide:clock" />
                                                 <span class="ml-3">{{ present || '-' }}</span>
                                             </VTag>
-                                        </VFlex>
+                                        </VFlex> -->
                                     </div>
 
                                     <div class="event-date">

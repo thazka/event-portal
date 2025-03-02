@@ -1,0 +1,455 @@
+.drawing-wrapper {
+    display: flex;
+    justify-content: space-between;
+    background: url('/images/doorprize/doorprize-bg.jpg');
+    height: 90vh;
+    padding: 40px;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    position: relative;
+
+    &.is-fullscreen {
+        height: 100vh;
+        padding: 20px;
+    }
+
+    // Notification area
+    .notification-area {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+        width: 300px;
+
+        .notification {
+            margin-bottom: 10px;
+            padding: 10px 12px;
+            border-radius: 6px;
+            position: relative;
+
+            &.is-danger {
+                background-color: #f44336;
+                color: white;
+            }
+
+            &.is-success {
+                background-color: #4caf50;
+                color: white;
+            }
+
+            .delete {
+                position: absolute;
+                right: 10px;
+                top: 10px;
+                background-color: rgba(255, 255, 255, 0.3);
+                border: none;
+                border-radius: 50%;
+                width: 20px;
+                height: 20px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+
+                &:before,
+                &:after {
+                    content: '';
+                    position: absolute;
+                    width: 12px;
+                    height: 2px;
+                    background-color: white;
+                }
+
+                &:before {
+                    transform: rotate(45deg);
+                }
+
+                &:after {
+                    transform: rotate(-45deg);
+                }
+            }
+        }
+    }
+
+    // Loading overlay
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.7);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        p {
+            color: white;
+            font-size: 18px;
+        }
+    }
+
+    // Admin controls
+    .admin-controls {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        z-index: 100;
+
+        .reset-button {
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+
+            &:hover:not(:disabled) {
+                background-color: #f44336;
+                color: white;
+                border-color: #f44336;
+            }
+
+            &:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+
+            i {
+                margin-right: 6px;
+            }
+        }
+    }
+
+    // Prize display area
+    .prize-display-area {
+        background: transparent;
+        border: none;
+        flex: 1;
+        margin: 0 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+
+        .prize-image {
+            text-align: center;
+            margin-bottom: 2rem;
+
+            img {
+                max-width: 250px;
+                height: auto;
+                object-fit: contain;
+            }
+
+            .prize-name {
+                font-size: 3rem;
+                margin-top: 0;
+                margin-bottom: 0.5rem;
+            }
+
+            .winners-count {
+                font-size: 1rem;
+                color: #666;
+            }
+
+            .see-winners-btn {
+                background-color: #e8b15a;
+                color: #333;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 16px;
+                margin-top: 15px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                display: inline-flex;
+                align-items: center;
+                box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16);
+
+                &:hover {
+                    background-color: #d59f40;
+                    transform: translateY(-2px);
+                    box-shadow: 0 5px 12px rgba(0, 0, 0, 0.2);
+                }
+
+                i {
+                    margin-right: 8px;
+                    color: #bd8019;
+                }
+            }
+        }
+
+        .winner-display {
+            width: 100%;
+            text-align: center;
+
+            &.is-spinning {
+                animation: pulse 0.5s infinite;
+            }
+        }
+    }
+
+    // Fullscreen button
+    .fullscreen-button {
+        position: absolute;
+        top: 10px;
+        right: 25px;
+        background-color: rgba(255, 255, 255, 0.7);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 100;
+        transition: all 0.3s ease;
+
+        &:hover {
+            background-color: rgba(255, 255, 255, 0.9);
+            transform: scale(1.1);
+        }
+
+        i {
+            font-size: 1.2rem;
+            color: #333;
+        }
+    }
+}
+
+// Animations
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.02);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+// Winners Modal Styles
+.winners-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    padding: 20px;
+
+    .winners-modal-content {
+        // background-image: linear-gradient(to bottom, #f8ebce, #f8ebce 40%, #2d4256 40%, #2d4256);
+        background-image: url('/images/doorprize/bg-new.jpg');
+        width: 100%;
+        max-width: 1100px;
+        border-radius: 12px;
+        overflow: hidden;
+        position: relative;
+        box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+        border: 5px solid #b58c39;
+        background-size: contain;
+        background-repeat: round;
+
+        .winners-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+
+            .app-logo {
+                height: 50px;
+                width: auto;
+            }
+
+            .modal-close {
+                width: 36px;
+                height: 36px;
+                background-color: rgba(0, 0, 0, 0.1);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: all 0.2s ease;
+
+                &:hover {
+                    background-color: rgba(0, 0, 0, 0.2);
+                }
+
+                i {
+                    font-size: 18px;
+                    color: #333;
+                }
+            }
+        }
+
+        .prize-showcase {
+            display: flex;
+            justify-content: center;
+            padding: 0 20px 30px;
+
+            .prize-image-container {
+                text-align: center;
+
+                img {
+                    width: 200px;
+                    height: auto;
+                    object-fit: contain;
+                    padding: 15px;
+                    background-color: white;
+                    border-radius: 50%;
+                    border: 5px solid #b58c39;
+                    margin-bottom: 15px;
+                }
+
+                .prize-title {
+                    color: #333;
+                    font-size: 1.5rem;
+                    margin: 0;
+                }
+            }
+        }
+
+        .winners-container {
+            display: flex;
+            padding: 30px 50px;
+            justify-content: space-around;
+            gap: 20px;
+            margin-bottom: 20px;
+
+            .winners-column {
+                flex: 1;
+
+                .winner-item {
+                    background-color: #F7E5C3;
+                    padding: 12px 15px;
+                    position: relative;
+                    display: block;
+
+                    .winner-number {
+                        display: block;
+                        color: white;
+                        font-size: 1.1rem;
+                        font-weight: bold;
+                    }
+
+                    .winner-name {
+                        display: block;
+                        color: black;
+                        font-size: 15px;
+                        font-weight: bold;
+                        opacity: 0.8;
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Responsive styles
+@media (max-width: 1200px) {
+    .drawing-wrapper {
+        flex-direction: column;
+        height: auto;
+        gap: 20px;
+
+        .participants-area,
+        .doorprize-area {
+            width: 100%;
+            max-width: 100%;
+        }
+
+        .prize-display-area {
+            margin: 20px 0;
+        }
+
+        .admin-controls {
+            position: static;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .notification-area {
+            width: calc(100% - 40px);
+            left: 20px;
+            right: 20px;
+        }
+    }
+
+    // Mobile styles for winners modal
+    @media (max-width: 768px) {
+        .winners-modal-overlay {
+            .winners-modal-content {
+                background-image: linear-gradient(to bottom, #f8ebce, #f8ebce 30%, #2d4256 30%, #2d4256);
+
+                .prize-showcase {
+                    padding: 0 20px 20px;
+
+                    .prize-image-container {
+                        img {
+                            width: 150px;
+                        }
+
+                        .prize-title {
+                            font-size: 1.2rem;
+                        }
+                    }
+                }
+
+                .winners-container {
+                    flex-direction: column;
+                    padding: 20px;
+
+                    .winners-column {
+                        .winner-item {
+                            padding: 10px;
+
+                            .winner-number {
+                                font-size: 0.9rem;
+                            }
+
+                            .winner-name {
+                                font-size: 0.8rem;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

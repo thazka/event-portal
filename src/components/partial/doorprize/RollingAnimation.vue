@@ -314,27 +314,27 @@ onUnmounted(() => {
         </div> -->
 
         <!-- The spinning display window -->
-         <div class="spinner-main">
-             <div class="spinner-window">
-                 <!-- Static display when not spinning -->
-                 <div class="display-name" v-if="!isSpinning">
-                     {{ displayName }}
-                 </div>
-     
-                 <!-- Animated content when spinning -->
-                 <div ref="containerRef" class="spinner-content" :class="{ 'is-spinning': isSpinning }" :style="{
-                     transform: `translateY(${-currentPosition}px)`,
-                     transition: !isSpinning ? 'transform 0.5s ease-out' : 'none'
-                 }">
-                     <div v-for="participant in participants" :key="participant.id" class="spinner-item">
-                         {{ participant.name }}
-                     </div>
-                 </div>
-     
-                 <!-- Visual highlight for the current selection -->
-                 <div class="spinner-highlight" v-if="isSpinning"></div>
-             </div>
-         </div>
+        <div class="spinner-main">
+            <div class="spinner-window">
+                <!-- Static display when not spinning -->
+                <div class="display-name" v-if="!isSpinning">
+                    {{ displayName }}
+                </div>
+
+                <!-- Animated content when spinning -->
+                <div ref="containerRef" class="spinner-content" :class="{ 'is-spinning': isSpinning }" :style="{
+                    transform: `translateY(${-currentPosition}px)`,
+                    transition: !isSpinning ? 'transform 0.5s ease-out' : 'none'
+                }">
+                    <div v-for="participant in participants" :key="participant.id" class="spinner-item">
+                        {{ participant.name }}
+                    </div>
+                </div>
+
+                <!-- Visual highlight for the current selection -->
+                <div class="spinner-highlight" v-if="isSpinning"></div>
+            </div>
+        </div>
 
         <!-- Action buttons -->
         <div class="action-buttons mt-5">
@@ -350,9 +350,7 @@ onUnmounted(() => {
                     <span v-else>All Winners Selected</span>
                 </VButton>
 
-                <VButton color="info"
-                    :disabled="!currentDoorprize || (!currentDoorprize.participants || currentDoorprize.participants.length === 0)"
-                    @click="moveToNextDoorprize">
+                <VButton color="info" :disabled="!currentDoorprize" @click="moveToNextDoorprize">
                     Next Doorprize
                 </VButton>
             </template>

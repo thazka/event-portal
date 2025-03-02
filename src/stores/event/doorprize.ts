@@ -1,7 +1,7 @@
 import { acceptHMRUpdate, defineStore } from 'pinia'
 
 export const useDoorprize = defineStore('doorprize', () => {
-    const doorprize = reactive({
+    const doorprize = reactive<any>({
         data: [],
         isLoading: true,
         isError: false,
