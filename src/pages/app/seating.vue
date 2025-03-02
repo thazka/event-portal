@@ -264,7 +264,7 @@ useHead({
             </div>
         </div>
 
-        <VFlexPagination v-if="processedData.length > 5" v-model:current-page="filter.page" :item-per-page="10"
+        <VFlexPagination v-if="processedData.length" v-model:current-page="filter.page" :item-per-page="10"
             :total-items="seatList.pagination.total" :max-links-displayed="7" no-router class="mt-4" @update:currentPage="changePage">
             <template #before-pagination>
                 <VDropdown left donw class="mr-2">
