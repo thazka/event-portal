@@ -274,7 +274,7 @@ useHead({
 .drawing-wrapper {
     display: flex;
     justify-content: space-between;
-    background: url('/images/doorprize/bg-doorprize.svg');
+    background: url('/images/doorprize/doorprize-bg.jpg');
     height: 90vh;
     padding: 40px;
     background-position: center;
@@ -382,7 +382,7 @@ useHead({
 
             .prize-name {
                 font-size: 1.5rem;
-                margin-top: 1rem;
+                margin-top: 0;
                 margin-bottom: 0.5rem;
             }
 

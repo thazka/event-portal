@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue';
+import { useRollingAnimation } from '/@src/composables/event/light-animation';
 
 interface Participant {
     id: number
     name: string
     selected?: boolean
 }
+
+const { initAnimation, cleanupAnimation } = useRollingAnimation('.spinner-main');
 
 interface Doorprize {
     id: number
@@ -311,25 +314,27 @@ onUnmounted(() => {
         </div> -->
 
         <!-- The spinning display window -->
-        <div class="spinner-window">
-            <!-- Static display when not spinning -->
-            <div class="display-name" v-if="!isSpinning">
-                {{ displayName }}
-            </div>
-
-            <!-- Animated content when spinning -->
-            <div ref="containerRef" class="spinner-content" :class="{ 'is-spinning': isSpinning }" :style="{
-                transform: `translateY(${-currentPosition}px)`,
-                transition: !isSpinning ? 'transform 0.5s ease-out' : 'none'
-            }">
-                <div v-for="participant in participants" :key="participant.id" class="spinner-item">
-                    {{ participant.name }}
-                </div>
-            </div>
-
-            <!-- Visual highlight for the current selection -->
-            <div class="spinner-highlight" v-if="isSpinning"></div>
-        </div>
+         <div class="spinner-main">
+             <div class="spinner-window">
+                 <!-- Static display when not spinning -->
+                 <div class="display-name" v-if="!isSpinning">
+                     {{ displayName }}
+                 </div>
+     
+                 <!-- Animated content when spinning -->
+                 <div ref="containerRef" class="spinner-content" :class="{ 'is-spinning': isSpinning }" :style="{
+                     transform: `translateY(${-currentPosition}px)`,
+                     transition: !isSpinning ? 'transform 0.5s ease-out' : 'none'
+                 }">
+                     <div v-for="participant in participants" :key="participant.id" class="spinner-item">
+                         {{ participant.name }}
+                     </div>
+                 </div>
+     
+                 <!-- Visual highlight for the current selection -->
+                 <div class="spinner-highlight" v-if="isSpinning"></div>
+             </div>
+         </div>
 
         <!-- Action buttons -->
         <div class="action-buttons mt-5">
@@ -373,7 +378,7 @@ onUnmounted(() => {
     max-width: 600px;
     margin: 0 auto;
     padding: 20px;
-    background: white;
+    background: transparent;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
@@ -428,7 +433,7 @@ onUnmounted(() => {
     position: relative;
     border: 2px solid #e0e0e0;
     border-radius: 8px;
-    background: #f8f8f8;
+    background: #FFEACC;
 }
 
 .display-name {
@@ -467,7 +472,7 @@ onUnmounted(() => {
     padding: 0 20px;
     text-align: center;
     color: #333;
-    background: white;
+    background: transparent;
 }
 
 .spinner-highlight {

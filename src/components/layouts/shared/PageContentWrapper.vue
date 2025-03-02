@@ -37,6 +37,7 @@ const route = useRoute()
 
     &.is-luckydraw {
       padding-bottom: 0;
+      max-width: unset;
     }
   }
 
