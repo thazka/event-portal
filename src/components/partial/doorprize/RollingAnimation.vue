@@ -23,7 +23,7 @@ interface Doorprize {
 }
 
 const SPIN_DURATION = 30000; // Total durasi spin normal (30 detik)
-const FORCE_STOP_DURATION = 3000; // Durasi berhenti ketika tombol stop diklik (3 detik)
+const FORCE_STOP_DURATION = 2000; // Durasi berhenti ketika tombol stop diklik (3 detik)
 const INITIAL_SPEED = 30; // Starting speed (slower)
 const MAX_SPEED = 300; // Maximum speed during spin
 const SLOWDOWN_POINT = 0.6; // At what point to start slowing down (0.6 = 60% of duration)
