@@ -75,7 +75,7 @@ const props = withDefaults(defineProps<VCardAdvancedProps>(), {
   }
   
   &.event-bg-3 {
-    background-image: url('/images/event/layout/layout-meeting.jpg');
+    background-image: url('/images/event/layout/layout-gala-dinner.jpg');
     height: 100%;
     min-height: 700px;
     position: relative;
