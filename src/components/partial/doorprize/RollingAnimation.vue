@@ -22,7 +22,7 @@ interface Doorprize {
     created_by: number
 }
 
-const SPIN_DURATION = 8000; // Total duration of spinning in ms
+const SPIN_DURATION = 30000; // Total duration of spinning in ms
 const INITIAL_SPEED = 30; // Starting speed (slower)
 const MAX_SPEED = 300; // Maximum speed during spin
 const SLOWDOWN_POINT = 0.6; // At what point to start slowing down (0.6 = 60% of duration)

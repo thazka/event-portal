@@ -553,28 +553,14 @@ onMounted(() => {
                             <div class="meeting-info-card has-fullheight">
                                 <div class="participant-content">
                                     <div class="participant-name-container">
-                                        <h1 class="participant-name">{{ selectedParticipant ? selectedParticipant.name :
-                                            'No Participant Selected' }}</h1>
+                                        <h1 class="participant-name">{{ selectedParticipant ? selectedParticipant.name : 'No Participant Selected' }}</h1>
                                     </div>
 
                                     <div class="participant-details">
-                                        <h3 class="title has-text-centered"
-                                            v-if="selectedParticipant && selectedParticipant.event">
-                                            {{ selectedParticipant.event?.seat?.name ?
-                                                `${selectedParticipant.event?.seat?.name}` : 'Not Assigned' }}
+                                        <h3 class="title has-text-centered" v-if="selectedParticipant && selectedParticipant.event">
+                                            {{ selectedParticipant.event?.seat?.name ? `${selectedParticipant.event?.seat?.name}` : 'Not Assigned' }}
                                         </h3>
                                         <h3 class="subtitle" v-else>Select a participant to view seat information</h3>
-
-                                        <!-- <VFlex column-gap="8px" justify-content="center">
-                                            <VTag :color="selectedStatus === 'Present' ? 'success' : 'warning'">
-                                                <VIcon icon="lucide:user-check" />
-                                                <span class="ml-3">{{ selectedStatus || 'Not Checked In' }}</span>
-                                            </VTag>
-                                            <VTag :color="present !== '-' ? 'info' : 'light'">
-                                                <VIcon icon="lucide:clock" />
-                                                <span class="ml-3">{{ present || '-' }}</span>
-                                            </VTag>
-                                        </VFlex> -->
                                     </div>
 
                                     <div class="event-date">
@@ -668,7 +654,6 @@ onMounted(() => {
 .event-date {
     align-self: center;
     background-color: #f5f0e1;
-    border: 2px solid #c8b69b;
     border-radius: 10px;
     padding: 8px 15px;
     font-size: 1.4rem;
@@ -695,9 +680,11 @@ onMounted(() => {
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     margin: 20px 0;
+    color: #232323;
 
     .title {
         font-size: 50px;
+        color: #232323 !important;
     }
 }
 
@@ -818,5 +805,79 @@ onMounted(() => {
     border-radius: 8px;
     height: 100%;
     position: relative;
+}
+
+/* Ubah struktur meeting-info-card */
+.meeting-info-card {
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between; /* Ini akan memisahkan konten ke arah yang berlawanan */
+}
+
+/* Posisikan participant-content di tengah */
+.participant-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    justify-content: center; /* Tambahkan ini untuk memusatkan konten secara vertikal */
+    margin-top: 0; /* Hapus margin-top */
+    padding: 30px 0; /* Tambahkan padding atas dan bawah untuk spacing yang lebih baik */
+}
+
+/* Pastikan event-image-container berada di bawah */
+.event-image-container {
+    margin-top: auto; /* Ini akan mendorong container ke bagian bawah */
+    width: 100%;
+    text-align: center;
+    padding-bottom: 20px; /* Tambahkan padding bawah untuk jarak yang lebih baik */
+}
+
+/* Kurangi margin-bottom pada event-date untuk jarak yang lebih baik dengan gambar */
+.event-date {
+    align-self: center;
+    background-color: #f5f0e1;
+    border-radius: 10px;
+    padding: 8px 15px;
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-top: 10px;
+    margin-bottom: 40px; /* Kurangi dari 70px menjadi 40px */
+    width: 60%;
+    text-align: center;
+    
+    h3 {
+        color: #232323 !important;
+    }
+}
+
+/* Tambahkan style untuk event-name agar responsif */
+.event-name {
+    width: auto; /* Ubah dari 100% menjadi auto */
+    max-width: 100%; /* Tambahkan max-width */
+    height: auto;
+    max-height: 120px; /* Tambahkan height agar terlihat lebih besar */
+    object-fit: contain;
+    margin-top: 20px; /* Tambahkan margin-top untuk memberikan jarak dengan konten di atasnya */
+
+    &.is-fullscreen {
+        margin-bottom: 50px;
+        max-height: 150px; /* Lebih besar saat fullscreen */
+    }
+}
+
+/* Style tambahan untuk modus fullscreen */
+.card-seating-wrapper.is-fullscreen {
+    .meeting-info-card {
+        padding: 40px 20px; /* Tambah padding saat fullscreen */
+    }
+    
+    .participant-content {
+        padding: 50px 0; /* Tambah padding saat fullscreen */
+    }
 }
 </style>
