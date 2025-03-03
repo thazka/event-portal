@@ -22,7 +22,8 @@ interface Doorprize {
     created_by: number
 }
 
-const SPIN_DURATION = 30000; // Total duration of spinning in ms
+const SPIN_DURATION = 30000; // Total durasi spin normal (30 detik)
+const FORCE_STOP_DURATION = 3000; // Durasi berhenti ketika tombol stop diklik (3 detik)
 const INITIAL_SPEED = 30; // Starting speed (slower)
 const MAX_SPEED = 300; // Maximum speed during spin
 const SLOWDOWN_POINT = 0.6; // At what point to start slowing down (0.6 = 60% of duration)
@@ -55,27 +56,42 @@ const spinAudio = ref<HTMLAudioElement | null>(null);
 const winAudio = ref<HTMLAudioElement | null>(null);
 
 const getSpeedFactor = (elapsed: number) => {
-    const normalizedTime = elapsed / SPIN_DURATION;
-
+    // Jika force stop diaktifkan, gunakan durasi yang lebih pendek (3 detik)
+    const targetDuration = forceStopTriggered.value ? FORCE_STOP_DURATION : SPIN_DURATION;
+    
+    // Normalisasi waktu berdasarkan durasi target
+    let normalizedTime = elapsed / targetDuration;
+    
     if (forceStopTriggered.value) {
-        const remainingTime = Math.min(1.0, normalizedTime + 0.2); // Advance progress to simulate quick slowdown
-
-        if (remainingTime > 0.95) {
-            return 10; // Very slow at the end
-        } else if (remainingTime > 0.9) {
+        // Jika force stop diaktifkan, mulai dari waktu elapsed saat tombol ditekan
+        // dan percepat waktu berdasarkan durasi force stop yang lebih pendek
+        const elapsedSinceStop = elapsed - elapsedBeforeStop.value;
+        normalizedTime = elapsedSinceStop / FORCE_STOP_DURATION;
+        
+        // Batasi normalizedTime agar tidak melebihi 1
+        normalizedTime = Math.min(normalizedTime, 1);
+        
+        // Kurva perlambatan yang lebih agresif untuk force stop
+        if (normalizedTime > 0.9) {
+            return 5; // Sangat lambat di akhir
+        } else if (normalizedTime > 0.8) {
+            return 10;
+        } else if (normalizedTime > 0.6) {
             return 20;
-        } else if (remainingTime > 0.8) {
-            return 40;
+        } else if (normalizedTime > 0.4) {
+            return 60;
         } else {
-            return MAX_SPEED * (1 - Math.pow(remainingTime, 2)); // Gradually slow down
+            // Perlambatan lebih cepat
+            return MAX_SPEED * (1 - Math.pow(normalizedTime, 1.5));
         }
-    }
-
-    if (normalizedTime < SLOWDOWN_POINT) {
-        return INITIAL_SPEED + (MAX_SPEED - INITIAL_SPEED) * (normalizedTime / SLOWDOWN_POINT);
     } else {
-        const slowdownPhase = (normalizedTime - SLOWDOWN_POINT) / (1 - SLOWDOWN_POINT);
-        return MAX_SPEED * (1 - Math.pow(slowdownPhase, 2));
+        // Logika normal untuk spin selama 30 detik
+        if (normalizedTime < SLOWDOWN_POINT) {
+            return INITIAL_SPEED + (MAX_SPEED - INITIAL_SPEED) * (normalizedTime / SLOWDOWN_POINT);
+        } else {
+            const slowdownPhase = (normalizedTime - SLOWDOWN_POINT) / (1 - SLOWDOWN_POINT);
+            return MAX_SPEED * (1 - Math.pow(slowdownPhase, 2));
+        }
     }
 };
 
@@ -131,22 +147,20 @@ const animate = (timestamp: number) => {
 
     let elapsed = timestamp - startTime.value;
 
-    // When force stopping, we add time to make it reach the end faster
+    // Catat waktu ketika tombol stop ditekan
     if (forceStopTriggered.value && elapsedBeforeStop.value === 0) {
         elapsedBeforeStop.value = elapsed;
     }
 
-    // If force stopped, speed up the elapsed time to reach end faster
-    if (forceStopTriggered.value) {
-        const timeScale = 2.5; // Accelerate time
-        const additionalTime = (elapsed - elapsedBeforeStop.value) * timeScale;
-        elapsed = elapsedBeforeStop.value + additionalTime;
-    }
+    // Gunakan durasi yang sesuai berdasarkan apakah force stop aktif atau tidak
+    const targetDuration = forceStopTriggered.value ? 
+        elapsedBeforeStop.value + FORCE_STOP_DURATION : // 3 detik setelah klik stop
+        SPIN_DURATION; // 30 detik total
 
     const speedFactor = getSpeedFactor(elapsed);
 
-    // Calculate which participant is selected
-    if (elapsed < SPIN_DURATION && props.participants.length > 0) {
+    // Hentikan animasi ketika mencapai durasi target atau durasi stop yang dipercepat
+    if (elapsed < targetDuration && props.participants.length > 0) {
         currentPosition.value = (currentPosition.value + speedFactor) % listHeight.value;
 
         selectedIndex.value = Math.floor(
@@ -156,13 +170,13 @@ const animate = (timestamp: number) => {
         displayName.value = props.participants[selectedIndex.value].name;
         animationFrame.value = requestAnimationFrame(animate);
     } else {
-        // Animation complete
+        // Animasi selesai
         if (props.participants.length > 0) {
             const winner = props.participants[selectedIndex.value];
             displayName.value = winner.name;
             winnerDetails.value = winner;
 
-            // Stop spinning sound and play winning sound
+            // Hentikan suara spinning dan putar suara pemenang
             stopSpinSound();
             playWinSound();
 
