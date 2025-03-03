@@ -117,7 +117,7 @@ const close = () => {
 }
 
 .modal-container {
-    background-color: white;
+    background-color: #F7E5C3;
     border-radius: 12px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
     width: 90%;
@@ -127,8 +127,8 @@ const close = () => {
 }
 
 .modal-header {
-    background: linear-gradient(135deg, #3b82f6, #6366f1);
-    color: white;
+    background: #F7E5C3;
+    color: #232323;
     padding: 20px;
     display: flex;
     justify-content: space-between;
@@ -143,7 +143,7 @@ const close = () => {
     .close-button {
         background: none;
         border: none;
-        color: white;
+        color: #232323;
         font-size: 1.8rem;
         cursor: pointer;
         padding: 0;
@@ -217,11 +217,11 @@ const close = () => {
             .remaining-info {
                 margin-top: 10px;
                 padding: 8px;
-                background-color: #f3f4f6;
+                background-color: transparent;
                 border-radius: 4px;
                 display: inline-block;
                 font-size: 0.9rem;
-                color: #4b5563;
+                color: #232323;
             }
         }
     }
@@ -242,22 +242,24 @@ const close = () => {
         font-size: 1rem;
 
         &.confirm {
-            background-color: #3b82f6;
-            color: white;
+            background-color: #F7E5C3;
+            border: 1px solid #666;
+            color: #232323;
             flex: 3;
 
             &:hover {
-                background-color: #2563eb;
+                background-color: #bba886;
             }
         }
 
         &.eliminate {
-            background-color: #f3f4f6;
+            background-color: #F7E5C3;
             color: #4b5563;
             flex: 2;
 
             &:hover {
-                background-color: #e5e7eb;
+                background-color: red;
+                color: white;
             }
         }
     }
