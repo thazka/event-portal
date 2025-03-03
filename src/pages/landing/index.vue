@@ -180,7 +180,7 @@ const getLayout = () => {
   }
   
   .event-type-img {
-    max-width: 100%;
+    max-width: 50%;
     height: auto;
   }
 }
@@ -273,6 +273,13 @@ const getLayout = () => {
       font-size: 2.5rem;
     }
   }
+
+  .content {
+    .event-type-img {
+      max-width: 30%;
+      height: auto;
+    }
+  }
 }
 
 /* Standard desktops and laptops */
@@ -293,6 +300,13 @@ const getLayout = () => {
     &.date {
       padding: 10px 35px;
       font-size: 1.8rem;
+    }
+  }
+
+  .content {
+    .event-type-img {
+      max-width: 50%;
+      height: auto;
     }
   }
 }
@@ -322,6 +336,13 @@ const getLayout = () => {
   
   .content .layout-img {
     max-width: 90%;
+  }
+
+  .content {
+    .event-type-img {
+      max-width: 50%;
+      height: auto;
+    }
   }
 }
 
@@ -360,6 +381,13 @@ const getLayout = () => {
     &.date {
       padding: 7px 25px;
       font-size: 1.4rem;
+    }
+  }
+
+  .content {
+    .event-type-img {
+      max-width: 50%;
+      height: auto;
     }
   }
 }
@@ -419,7 +447,7 @@ const getLayout = () => {
     }
     
     .event-type-img {
-      max-width: 85%;
+      max-width: 55%;
       margin-bottom: 1.5rem;
     }
   }
@@ -650,7 +678,7 @@ const getLayout = () => {
 /* Tablets and large phones in landscape */
 @media screen and (max-width: 768px) {
   .banner-container .calendar {
-    top: 20%;
+    top: 27%;
     width: 90%;
     font-size: 16px;
   }
