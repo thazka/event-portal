@@ -67,3 +67,26 @@ export const updateWinner = async (id: number, params: any) => {
         return error   
     }
 }
+
+export const exportDrawing = async () => {
+    try {
+        const { data } = await api.get(`/v1/participant/export`, {
+            headers: {
+                'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            },
+            responseType: 'blob'
+        });
+
+        const url = window.URL.createObjectURL(new Blob([data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'doorprize.xlsx');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        return data
+    } catch (error) {
+        return error
+    }
+}

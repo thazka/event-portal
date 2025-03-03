@@ -136,22 +136,16 @@ const openSpin = () => {
     router.push('/app/luckydraw')
 }
 
-const handleUpload = () => {
-    // Implementation for uploading participants dataset
-    console.log('Upload participants dataset')
-}
-
-// Helper to get winner names (assuming they would be in participants array)
-const getWinnerNames = (doorprize: DoorprizeData) => {
-    if (!doorprize.participants || !doorprize.participants.length) {
-        return 'Not drawn yet'
-    }
-    // Get only winners
-    const winners = doorprize.participants.filter(p => p.is_winner)
-    if (!winners.length) {
-        return 'Not drawn yet'
-    }
-    return winners.map(w => w.name).join(', ')
+const getWinnerNames = (doorprize: DoorprizeData): string => {
+  if (!doorprize?.participants || doorprize?.participants.length === 0) {
+    return 'Not drawn yet';
+  }
+    
+  if (doorprize?.participants?.length === 0) {
+    return 'No winners yet';
+  }
+  
+  return doorprize?.participants.map(w => w.name).join(', ');
 }
 
 const handleDelete = (id: number) => {
