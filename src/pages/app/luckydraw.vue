@@ -167,7 +167,8 @@ const fetchDoorprizes = async (): Promise<void> => {
         errorMessage.value = null
         
         await fetchDoorprize({
-            offset: 999
+            // offset: 999
+            paginate: false
         })
 
         doorprize.data.forEach(prize => {
@@ -202,7 +203,7 @@ const fetchDoorprizes = async (): Promise<void> => {
  * Filtered list of participants based on search and selection status
  */
 const filteredParticipants = computed(() => {
-    let list = participants.data
+    let list = participants.data.filter(data => data.events.find(event => event.event_id == 3 && event.attendance))
 
     if (!multipleDoorprizesPerWinner.value) {
         // Filter out participants who already won any doorprize
