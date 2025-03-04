@@ -40,52 +40,54 @@ const handleDelete = async (doorprize: Doorprize) => {
 </script>
 
 <template>
-    <div class="container">
-        <button class="button is-primary my-4" @click="isModalActive = true">
-            Add New Doorprize
-        </button>
-
-        <div class="table-container">
-            <table class="table is-fullwidth">
-                <thead>
-                    <tr>
-                        <th>Urutan</th>
-                        <th>Name</th>
-                        <th>Doorprize</th>
-                        <th>Gambar</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="doorprize in doorprizes" :key="doorprize.id">
-                        <td>{{ doorprize.urutan }}</td>
-                        <td>{{ doorprize.name }}</td>
-                        <td>{{ doorprize.doorprize }}</td>
-                        <td>
-                            <img :src="doorprize.gambar" alt="Doorprize image"
-                                style="max-width: 50px; max-height: 50px;" />
-                        </td>
-                        <td>
-                            <div class="buttons">
-                                <button class="button is-info is-small" @click="handleEdit(doorprize)">
-                                    Edit
-                                </button>
-                                <button class="button is-danger is-small" @click="handleDelete(doorprize)">
-                                    Delete
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <div class="modal" :class="{ 'is-active': isModalActive }">
-            <div class="modal-background" @click="isModalActive = false"></div>
-            <div class="modal-content">
-                <DoorprizeForm :edit-data="editingDoorprize" @save="handleSave" />
+    <div>
+        <div class="container">
+            <button class="button is-primary my-4" @click="isModalActive = true">
+                Add New Doorprize
+            </button>
+    
+            <div class="table-container">
+                <table class="table is-fullwidth">
+                    <thead>
+                        <tr>
+                            <th>Urutan</th>
+                            <th>Name</th>
+                            <th>Doorprize</th>
+                            <th>Gambar</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="doorprize in doorprizes" :key="doorprize.id">
+                            <td>{{ doorprize.urutan }}</td>
+                            <td>{{ doorprize.name }}</td>
+                            <td>{{ doorprize.doorprize }}</td>
+                            <td>
+                                <img :src="doorprize.gambar" alt="Doorprize image"
+                                    style="max-width: 50px; max-height: 50px;" />
+                            </td>
+                            <td>
+                                <div class="buttons">
+                                    <button class="button is-info is-small" @click="handleEdit(doorprize)">
+                                        Edit
+                                    </button>
+                                    <button class="button is-danger is-small" @click="handleDelete(doorprize)">
+                                        Delete
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
-            <button class="modal-close is-large" @click="isModalActive = false"></button>
+    
+            <div class="modal" :class="{ 'is-active': isModalActive }">
+                <div class="modal-background" @click="isModalActive = false"></div>
+                <div class="modal-content">
+                    <DoorprizeForm :edit-data="editingDoorprize" @save="handleSave" />
+                </div>
+                <button class="modal-close is-large" @click="isModalActive = false"></button>
+            </div>
         </div>
     </div>
 </template>

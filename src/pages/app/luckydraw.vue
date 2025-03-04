@@ -527,83 +527,85 @@ useHead({
 </script>
 
 <template>
-    <div ref="drawingWrapperRef" class="drawing-wrapper" :class="{ 'is-fullscreen': isFullscreen }">
-        <!-- Fullscreen toggle button -->
-        <div class="fullscreen-button" @click="toggleFullscreen">
-            <i class="fas" :class="isFullscreen ? 'fa-compress' : 'fa-expand'"></i>
-        </div>
-
-        <!-- Notifications -->
-        <div class="notification-area">
-            <div v-if="errorMessage" class="notification is-danger">
-                <button class="delete" @click="errorMessage = null"></button>
-                {{ errorMessage }}
+    <div>
+        <div ref="drawingWrapperRef" class="drawing-wrapper" :class="{ 'is-fullscreen': isFullscreen }">
+            <!-- Fullscreen toggle button -->
+            <div class="fullscreen-button" @click="toggleFullscreen">
+                <i class="fas" :class="isFullscreen ? 'fa-compress' : 'fa-expand'"></i>
             </div>
-            <div v-if="successMessage" class="notification is-success">
-                <button class="delete" @click="successMessage = null"></button>
-                {{ successMessage }}
-            </div>
-        </div>
-
-        <!-- Loading overlay -->
-        <div v-if="isLoading" class="loading-overlay">
-            <div class="loader"></div>
-            <p>Loading...</p>
-        </div>
-
-        <!-- Main content -->
-        <VCard radius="smooth" class="prize-display-area">
-            <div class="prize-image" v-if="currentDoorprize">
-                <img :src="currentDoorprize.photo" :alt="currentDoorprize.name" />
-                <h2 class="prize-name">{{ currentDoorprize.name }}</h2>
-                <p class="winners-count">
-                    Winners: {{ currentDoorprize.participants?.length || 0 }} / {{ currentDoorprize.total_winner }}
-                </p>
-                <button v-if="currentDoorprize.participants?.length > 0" 
-                        @click="openWinnersModal" 
-                        class="see-winners-btn">
-                    <i class="fas fa-trophy"></i> See All Winners
-                </button>
-            </div>
-
-            <div class="winner-display">
-                <RollingAnimation 
-                    :participants="filteredParticipants" 
-                    :current-doorprize="currentDoorprize"
-                    @winner-selected="handleWinnerSelected" 
-                    :is-all-winners-selected="isAllWinnersSelected"
-                    @next-doorprize="nextDoorprize" 
-                />
-            </div>
-        </VCard>
-    </div>
     
-    <!-- Winners Modal -->
-    <div class="winners-modal-overlay" v-if="isWinnersModalOpen" @click="closeWinnersModal">
-        <div class="winners-modal-content" @click.stop>
-            <div class="winners-modal-header">
-                <div class="modal-close" @click="closeWinnersModal">
-                    <i class="fas fa-times"></i>
+            <!-- Notifications -->
+            <div class="notification-area">
+                <div v-if="errorMessage" class="notification is-danger">
+                    <button class="delete" @click="errorMessage = null"></button>
+                    {{ errorMessage }}
+                </div>
+                <div v-if="successMessage" class="notification is-success">
+                    <button class="delete" @click="successMessage = null"></button>
+                    {{ successMessage }}
                 </div>
             </div>
-            
-            <div class="prize-showcase" v-if="currentDoorprize">
-                <div class="prize-image-container">
+    
+            <!-- Loading overlay -->
+            <div v-if="isLoading" class="loading-overlay">
+                <div class="loader"></div>
+                <p>Loading...</p>
+            </div>
+    
+            <!-- Main content -->
+            <VCard radius="smooth" class="prize-display-area">
+                <div class="prize-image" v-if="currentDoorprize">
                     <img :src="currentDoorprize.photo" :alt="currentDoorprize.name" />
-                    <h3 class="prize-title">{{ currentDoorprize.name }}</h3>
+                    <h2 class="prize-name">{{ currentDoorprize.name }}</h2>
+                    <p class="winners-count">
+                        Winners: {{ currentDoorprize.participants?.length || 0 }} / {{ currentDoorprize.total_winner }}
+                    </p>
+                    <button v-if="currentDoorprize.participants?.length > 0" 
+                            @click="openWinnersModal" 
+                            class="see-winners-btn">
+                        <i class="fas fa-trophy"></i> See All Winners
+                    </button>
                 </div>
-            </div>
-            
-            <div class="winners-container columns">
-                <div class="winners-column column">
-                    <div class="winner-item" v-for="(winner, index) in currentDoorprize?.participants?.slice(0, 5)" :key="winner.id">
-                        <span class="winner-name">{{ winner.name }}</span>
+    
+                <div class="winner-display">
+                    <RollingAnimation 
+                        :participants="filteredParticipants" 
+                        :current-doorprize="currentDoorprize"
+                        @winner-selected="handleWinnerSelected" 
+                        :is-all-winners-selected="isAllWinnersSelected"
+                        @next-doorprize="nextDoorprize" 
+                    />
+                </div>
+            </VCard>
+        </div>
+        
+        <!-- Winners Modal -->
+        <div class="winners-modal-overlay" v-if="isWinnersModalOpen" @click="closeWinnersModal">
+            <div class="winners-modal-content" @click.stop>
+                <div class="winners-modal-header">
+                    <div class="modal-close" @click="closeWinnersModal">
+                        <i class="fas fa-times"></i>
                     </div>
                 </div>
                 
-                <div class="winners-column column" v-if="currentDoorprize?.participants?.length > 5">
-                    <div class="winner-item" v-for="(winner, index) in currentDoorprize?.participants?.slice(5, 10)" :key="winner.id">
-                        <span class="winner-name">{{ winner.name }}</span>
+                <div class="prize-showcase" v-if="currentDoorprize">
+                    <div class="prize-image-container">
+                        <img :src="currentDoorprize.photo" :alt="currentDoorprize.name" />
+                        <h3 class="prize-title">{{ currentDoorprize.name }}</h3>
+                    </div>
+                </div>
+                
+                <div class="winners-container columns">
+                    <div class="winners-column column">
+                        <div class="winner-item" v-for="(winner, index) in currentDoorprize?.participants?.slice(0, 5)" :key="winner.id">
+                            <span class="winner-name">{{ winner.name }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="winners-column column" v-if="currentDoorprize?.participants?.length > 5">
+                        <div class="winner-item" v-for="(winner, index) in currentDoorprize?.participants?.slice(5, 10)" :key="winner.id">
+                            <span class="winner-name">{{ winner.name }}</span>
+                        </div>
                     </div>
                 </div>
             </div>
