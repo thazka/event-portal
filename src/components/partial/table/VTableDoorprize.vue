@@ -160,7 +160,7 @@ const handleDelete = (id: number) => {
 }
 
 const attendedParticipants = computed(() => {
-    return visitor.data.filter(data => data.events.find(event => event.event_id == 3 && event.attendance));
+    return visitor.data.filter(data => data.events.find(event => event.event_id == 3 && event.attendance) && !['CMI', 'VVIP'].includes(data.company));
 });
 
 onMounted(() => {
