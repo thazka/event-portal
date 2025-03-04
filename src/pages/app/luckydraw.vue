@@ -203,7 +203,7 @@ const fetchDoorprizes = async (): Promise<void> => {
  * Filtered list of participants based on search and selection status
  */
 const filteredParticipants = computed(() => {
-    let list = participants.data.filter(data => data.events.find(event => event.event_id == 3 && event.attendance))
+    let list = participants.data.filter(data => data.events.find(event => event.event_id == 3 && event.attendance) && !['CMI', 'VVIP'].includes(data.company))
 
     if (!multipleDoorprizesPerWinner.value) {
         // Filter out participants who already won any doorprize
